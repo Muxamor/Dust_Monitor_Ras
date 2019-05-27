@@ -1,8 +1,10 @@
 PROJECT=Dust_Monitor_Ras
-# Set the FLAG OS_SYSTEM - LINUX or BEAGLEBONEBLACK it depends which sistem are you use to build. 
-OS_SYSTEM=LINUX
+# Set the FLAG OS_SYSTEM - CROSSLINUX or CROSSMAC or RASSBERYPI it depends which sistem are you use to build. 
+OS_SYSTEM=CROSSLINUX
 
+ifeq ($(OS_SYSTEM),CROSSLINUX)
 SYSROOT_PATH=/home/muxamor/Develop/RaspberryPi/sysroot
+endif
 
 # Directory for C-Source
 vpath %.c $(CURDIR)/source
@@ -10,11 +12,15 @@ vpath %.c $(CURDIR)/source/OLED
 vpath %.c $(CURDIR)/source/OLED/Fonts
 
 # Directory for includes
-CINCLUDE = -I$(CURDIR)/include\
-		   -I$(CURDIR)/include/OLED\
-		   -I$(CURDIR)/include/OLED/Fonts\
-		   -I/home/muxamor/Develop/RaspberryPi/sysroot/usr/include
-			
+
+CINCLUDE = -I$(CURDIR)/include
+CINCLUDE +=	-I$(CURDIR)/include/OLED
+CINCLUDE +=	-I$(CURDIR)/include/OLED/Fonts
+
+ifeq ($(OS_SYSTEM),CROSSLINUX)
+CINCLUDE +=	-I/home/muxamor/Develop/RaspberryPi/sysroot/usr/include
+endif
+
 # Directory for object files
 OBJDIR = $(CURDIR)/object
 
@@ -40,9 +46,12 @@ COBJ =\
  $(OBJDIR)/DEV_Config.o
  
 # gcc binaries to use. Write correct path on your OS system 
-ifeq ($(OS_SYSTEM),LINUX)
+ifeq ($(OS_SYSTEM),CROSSLINUX)
 CC = "/opt/cross-pi-gcc-6.3.0-2/bin/arm-linux-gnueabihf-gcc"
 LD = "/opt/cross-pi-gcc-6.3.0-2/bin/arm-linux-gnueabihf-gcc"
+else ifeq ($(OS_SYSTEM),CROSSMAC)
+CC = "gcc"
+LD = "gcc"
 else ifeq ($(OS_SYSTEM),RASSBERYPI)
 CC = "gcc"
 LD = "gcc"
@@ -62,7 +71,14 @@ CFLAGS += -I.
 CFLAGS += $(CINCLUDE)
 CFLAGS += $(CDEFINE)
 
+# Linker options
 LDFLAGS = --sysroot=$(SYSROOT_PATH)
+#For build on MAC
+LDFLAGS += -pthread
+LDFLAGS += -lm
+LDFLAGS += -lcrypt
+LDFLAGS += -lrt
+
 
 LIB = -lwiringPi
 

@@ -1,5 +1,6 @@
 #include "OLED_GUI.h"
 #include <stdio.h>
+
 #include "DEV_Config.h"
 
 
@@ -456,6 +457,50 @@ void GUI_Showtime(POINT Xstart, POINT Ystart, POINT Xend, POINT Yend,
 	GUI_DisChar(Xstart + Dx * 5                  , Ystart, value[pTime->Sec / 10] , Font, FONT_BACKGROUND, Color);
 	GUI_DisChar(Xstart + Dx * 6                  , Ystart, value[pTime->Sec % 10] , Font, FONT_BACKGROUND, Color);
 	
+}
+
+/********************************************************************************
+function:	According to the display area adaptive display time and Date
+parameter:
+		xStart :   X direction Start coordinates
+		Ystart :   Y direction Start coordinates
+		Xend   :   X direction end coordinates
+		Yend   :   Y direction end coordinates
+		pTime  :   Pointer to the definition of the structure
+		Color  :   Set show color
+note:
+********************************************************************************/
+void GUI_ShowTimeDate(POINT Xstart, POINT Ystart, POINT Xend, POINT Yend,
+					DEV_TIME *pTime,COLOR Color){
+	uint8_t str[10] = {};
+	sFONT *Font;
+	OLED_SetWindow(Xstart, Ystart, Xend, Yend);
+
+	//According to the display area adaptive font size
+	POINT Dx = (Xend - Xstart) / 7;//Determine the spacing between characters
+	POINT Dy = Yend - Ystart;      //determine the font size
+
+	Font = &Font12;
+
+	//Write data into the cache
+	sprintf(str, "%02d", pTime->Hour);
+	GUI_DisString_EN(Xstart , Ystart, str, Font, FONT_BACKGROUND, Color);
+	GUI_DisChar(Xstart + 14   , Ystart, ':'                    , Font, FONT_BACKGROUND, Color);
+	sprintf(str, "%02d", pTime->Min);
+	GUI_DisString_EN(Xstart+20 , Ystart, str, Font, FONT_BACKGROUND, Color);
+	GUI_DisChar(Xstart + 34, Ystart, ':'                    , Font, FONT_BACKGROUND, Color);
+	sprintf(str, "%02d", pTime->Sec);
+	GUI_DisString_EN(Xstart+40 , Ystart, str, Font, FONT_BACKGROUND, Color);
+
+	sprintf(str, "%02d", pTime->Day);
+	GUI_DisString_EN(Xstart+57 , Ystart, str, Font, FONT_BACKGROUND, Color);
+	GUI_DisChar(Xstart + 71   , Ystart, '/'                    , Font, FONT_BACKGROUND, Color);
+	sprintf(str, "%02d", pTime->Month);
+	GUI_DisString_EN(Xstart+78 , Ystart, str, Font, FONT_BACKGROUND, Color);
+	GUI_DisChar(Xstart + 92   , Ystart, '/'                    , Font, FONT_BACKGROUND, Color);
+	sprintf(str, "%04d",pTime->Year );
+	GUI_DisString_EN(Xstart+99 , Ystart, str, Font, FONT_BACKGROUND, Color);
+
 }
 /********************************************************************************
 function:	OLED_Show
