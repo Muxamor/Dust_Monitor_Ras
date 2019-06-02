@@ -8,6 +8,7 @@
 #include <arpa/inet.h>
 
 #include <stdio.h>
+#include <string.h>
 
 
 #include "DEV_Config.h"
