@@ -1,8 +1,16 @@
 #include "OLED_GUI.h"
+
+#include <time.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <ifaddrs.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
 #include <stdio.h>
 
-#include "DEV_Config.h"
 
+#include "DEV_Config.h"
 
 extern OLED_DIS sOLED_DIS;
 extern COLOR Buffer[OLED_WIDTH / 2 * OLED_HEIGHT];
@@ -470,36 +478,64 @@ parameter:
 		Color  :   Set show color
 note:
 ********************************************************************************/
-void GUI_ShowTimeDate(POINT Xstart, POINT Ystart, POINT Xend, POINT Yend,
-					DEV_TIME *pTime,COLOR Color){
-	uint8_t str[10] = {};
-	sFONT *Font;
-	OLED_SetWindow(Xstart, Ystart, Xend, Yend);
-
-	//According to the display area adaptive font size
-	POINT Dx = (Xend - Xstart) / 7;//Determine the spacing between characters
-	POINT Dy = Yend - Ystart;      //determine the font size
-
-	Font = &Font12;
+void GUI_ShowTimeDate(POINT Xstart, POINT Ystart, POINT Xend, POINT Yend, struct tm *time_date, sFONT *Font, COLOR Color){
+	uint8_t str[20] = {};
+	//sFONT *Font;
+	//Font = &Font12;
+	//OLED_SetWindow(Xstart, Ystart, Xend, Yend);
+	OLED_ClearWindow(Xstart, Ystart, Xend, Yend, Color);
 
 	//Write data into the cache
-	sprintf(str, "%02d", pTime->Hour);
+	sprintf(str, "%02d", time_date->tm_hour);
 	GUI_DisString_EN(Xstart , Ystart, str, Font, FONT_BACKGROUND, Color);
-	GUI_DisChar(Xstart + 14   , Ystart, ':'                    , Font, FONT_BACKGROUND, Color);
-	sprintf(str, "%02d", pTime->Min);
+	GUI_DisChar(Xstart + 14   , Ystart, ':', Font, FONT_BACKGROUND, Color);
+	sprintf(str, "%02d", time_date->tm_min);
 	GUI_DisString_EN(Xstart+20 , Ystart, str, Font, FONT_BACKGROUND, Color);
-	GUI_DisChar(Xstart + 34, Ystart, ':'                    , Font, FONT_BACKGROUND, Color);
-	sprintf(str, "%02d", pTime->Sec);
+	GUI_DisChar(Xstart + 34, Ystart, ':', Font, FONT_BACKGROUND, Color);
+	sprintf(str, "%02d", time_date->tm_sec);
 	GUI_DisString_EN(Xstart+40 , Ystart, str, Font, FONT_BACKGROUND, Color);
 
-	sprintf(str, "%02d", pTime->Day);
-	GUI_DisString_EN(Xstart+57 , Ystart, str, Font, FONT_BACKGROUND, Color);
-	GUI_DisChar(Xstart + 71   , Ystart, '/'                    , Font, FONT_BACKGROUND, Color);
-	sprintf(str, "%02d", pTime->Month);
-	GUI_DisString_EN(Xstart+78 , Ystart, str, Font, FONT_BACKGROUND, Color);
-	GUI_DisChar(Xstart + 92   , Ystart, '/'                    , Font, FONT_BACKGROUND, Color);
-	sprintf(str, "%04d",pTime->Year );
+	sprintf(str, "%02d", time_date->tm_mday);
+	GUI_DisString_EN(Xstart+63 , Ystart, str, Font, FONT_BACKGROUND, Color);
+	GUI_DisChar(Xstart + 75   , Ystart, '.', Font, FONT_BACKGROUND, Color);
+	sprintf(str, "%02d", time_date->tm_mon + 1);
+	GUI_DisString_EN(Xstart+80 , Ystart, str, Font, FONT_BACKGROUND, Color);
+	GUI_DisChar(Xstart + 94   , Ystart, '.', Font, FONT_BACKGROUND, Color);
+	sprintf(str, "%04d", (time_date->tm_year)+1900);
 	GUI_DisString_EN(Xstart+99 , Ystart, str, Font, FONT_BACKGROUND, Color);
+
+}
+
+/********************************************************************************
+function:	According to the display area display minutes and seconds
+parameter:
+		xStart :   X direction Start coordinates
+		Ystart :   Y direction Start coordinates
+		Xend   :   X direction end coordinates
+		Yend   :   Y direction end coordinates
+		pString:   The first address of the English string to be displayed
+		Color  :   Set show color
+note:
+********************************************************************************/
+void GUI_Show_OLED_string(POINT Xstart, POINT Ystart, POINT Xend, POINT Yend, sFONT* Font, const char * pString, COLOR Color){
+
+	OLED_ClearWindow(Xstart, Ystart, Xend, Yend, Color);
+	GUI_DisString_EN(Xstart, Ystart, pString, Font, FONT_BACKGROUND, Color);
+
+}
+
+void GUI_Show_OLED_min_sec(POINT Xstart, POINT Ystart, POINT Xend, POINT Yend, sFONT* Font, uint8_t time_minutes, uint8_t time_seconds,COLOR Color){
+
+	uint8_t str[10] = {};
+
+	OLED_ClearWindow(Xstart, Ystart, Xend, Yend, Color);
+	//OLED_SetWindow(Xstart, Ystart, Xend, Yend);
+
+	//Write data into the cache
+
+	sprintf(str, "%02d:%02d", time_minutes,time_seconds);
+	GUI_DisString_EN(Xstart, Ystart, str, Font, FONT_BACKGROUND, Color);
+
 
 }
 /********************************************************************************
@@ -559,3 +595,70 @@ void GUI_Show(void)
 	Driver_Delay_ms(2000);
 }
 
+/********************************************************************************
+function: Show start screan
+********************************************************************************/
+void GUI_OLED_Show_Start_screan(uint32_t show_time_ms){
+
+	OLED_Clear(OLED_BACKGROUND);
+	OLED_Display();
+
+	GUI_DisString_EN(10 , 30, "ICT SB RAS", &Font16, FONT_BACKGROUND, WHITE);
+	GUI_DisString_EN(25 , 60, "Dust monitor", &Font12, FONT_BACKGROUND, WHITE);
+	GUI_DisString_EN(28 , 80, "PM1   PM2.5", &Font12, FONT_BACKGROUND, WHITE);
+	GUI_DisString_EN(28 , 100, "PM10  PM100", &Font12, FONT_BACKGROUND, WHITE);
+
+	OLED_Display();
+	Driver_Delay_ms(show_time_ms);
+}
+
+/********************************************************************************
+function: Show ip address
+
+parameter:
+		xStart :   X direction Start coordinates
+		Ystart :   Y direction Start coordinates
+		Xend   :   X direction end coordinates
+		Yend   :   Y direction end coordinates
+		Color  :   Set show color
+********************************************************************************/
+void GUI_OLED_Show_IP_address(POINT Xstart, POINT Ystart, POINT Xend, POINT Yend, COLOR Color){
+
+	struct ifaddrs * ifAddrStruct=NULL;
+	struct ifaddrs * ifa=NULL;
+	void * tmpAddrPtr=NULL;
+
+	OLED_ClearWindow(Xstart, Ystart, Xend, Yend, Color);
+	//OLED_SetWindow(Xstart, Ystart, Xend, Yend);
+
+	getifaddrs(&ifAddrStruct);
+
+	for (ifa = ifAddrStruct ; ifa != NULL; ifa = ifa->ifa_next ) {
+		if (ifa ->ifa_addr->sa_family==AF_INET) { // check it is IP4
+			// is a valid IP4 Address
+			tmpAddrPtr=&((struct sockaddr_in *)ifa->ifa_addr)->sin_addr;
+			char addressBuffer[INET_ADDRSTRLEN];
+			inet_ntop(AF_INET, tmpAddrPtr, addressBuffer, INET_ADDRSTRLEN);
+			printf("%s: %s\n", ifa->ifa_name, addressBuffer);
+
+			//print on OLED display 128x128
+			if(strcmp(ifa->ifa_name, "eth0")==0){
+				GUI_DisString_EN(Xstart, Ystart, "IPe", &Font12, FONT_BACKGROUND, Color);
+				GUI_DisString_EN(Xstart+23, Ystart, addressBuffer , &Font12, FONT_BACKGROUND, Color);
+			}else if(strcmp(ifa->ifa_name, "wlan0")==0){
+				GUI_DisString_EN(Xstart, Ystart+12, "IPw", &Font12, FONT_BACKGROUND, Color);
+				GUI_DisString_EN(Xstart+23, Ystart+12, addressBuffer, &Font12, FONT_BACKGROUND, Color);
+			}
+		} /* else if (ifa->ifa_addr->sa_family==AF_INET6) { // check it is IP6
+			// is a valid IP6 Address
+			tmpAddrPtr=&((struct sockaddr_in6 *)ifa->ifa_addr)->sin6_addr;
+			char addressBuffer[INET6_ADDRSTRLEN];
+			inet_ntop(AF_INET6, tmpAddrPtr, addressBuffer, INET6_ADDRSTRLEN);
+			printf("%s: %s\n", ifa->ifa_name, addressBuffer);
+			}*/
+		}
+		if (ifAddrStruct!=NULL)
+		freeifaddrs(ifAddrStruct);//remember to free ifAddrStruct
+
+		//OLED_DisWindow(Xstart, Ystart, Xend, Yend);
+}

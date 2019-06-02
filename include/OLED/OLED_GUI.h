@@ -1,6 +1,7 @@
 #ifndef __OLED_GUI_H
 #define __OLED_GUI_H		
 
+#include <time.h>
 #include "OLED_Driver.h"
 #include "../include/OLED/Fonts/fonts.h"
 
@@ -92,9 +93,12 @@ void GUI_DisChar(POINT Xstart, POINT Ystart, const char Acsii_Char, sFONT* Font,
 void GUI_DisString_EN(POINT Xstart, POINT Ystart, const char * pString, sFONT* Font, COLOR Color_Background, COLOR Color_Foreground );
 void GUI_DisNum(POINT Xpoint, POINT Ypoint, int32_t Nummber, sFONT* Font, COLOR Color_Background, COLOR Color_Foreground );
 void GUI_Showtime(POINT Xstart, POINT Ystart, POINT Xend, POINT Yend, DEV_TIME *pTime, COLOR Color);
-void GUI_ShowTimeDate(POINT Xstart, POINT Ystart, POINT Xend, POINT Yend, DEV_TIME *pTime,COLOR Color);
+void GUI_ShowTimeDate(POINT Xstart, POINT Ystart, POINT Xend, POINT Yend, struct tm *time_date, sFONT *Font, COLOR Color);
 //show
+void GUI_Show_OLED_min_sec(POINT Xstart, POINT Ystart, POINT Xend, POINT Yend, sFONT* Font, uint8_t time_minutes, uint8_t time_seconds,COLOR Color);
 void GUI_Show(void);
+void GUI_OLED_Show_Start_screan(uint32_t show_time_ms);
+void GUI_OLED_Show_IP_address(POINT Xstart, POINT Ystart, POINT Xend, POINT Yend, COLOR Color);
 
 
 static const unsigned char gImage_ninja[8198] = { 0X00,0X04,0X80,0X00,0X80,0X00,

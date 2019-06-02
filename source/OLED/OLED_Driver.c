@@ -201,9 +201,17 @@ void OLED_SetWindow(POINT Xstart, POINT Ystart, POINT Xend, POINT Yend)
        (Xend > sOLED_DIS.OLED_Dis_Column) || (Yend > sOLED_DIS.OLED_Dis_Page))
         return;
 
+    POINT Xstart_div;
+
+	if(Xstart!=0){
+		Xstart_div = Xstart/2;
+	}else{
+		Xstart_div = Xstart;
+	}
+
     OLED_WriteReg(0x15);
-    OLED_WriteReg(Xstart);
-    OLED_WriteReg(Xend - 1);
+    OLED_WriteReg(Xstart_div);
+    OLED_WriteReg(Xend/2 - 1);
 
     OLED_WriteReg(0x75);
     OLED_WriteReg(Ystart);
@@ -268,16 +276,22 @@ function:
 ********************************************************************************/
 void OLED_ClearWindow(POINT Xstart, POINT Ystart, POINT Xend, POINT Yend, COLOR Color)
 {
-    uint16_t i,m, Xpoint, Ypoint;
+	POINT i,m, Xpoint, Ypoint, Xstart_div;
 	Xpoint = (Xend - Xstart) / 2;
 	Ypoint = Yend - Ystart;
 	
-    uint16_t Num = Xstart + Ystart * (sOLED_DIS.OLED_Dis_Column / 2);
+	if(Xstart!=0){
+		Xstart_div = Xstart/2;
+	}else{
+		Xstart_div = Xstart;
+	}
+
+	POINT Num = Xstart_div + Ystart * (sOLED_DIS.OLED_Dis_Column / 2);
     for(i = 0; i < Ypoint; i++) {
         for(m = 0; m < Xpoint; m++) {
             Buffer[Num + m] = 0x00;
         }
-		Num = Xstart + (Ystart + i + 1) * (sOLED_DIS.OLED_Dis_Column / 2);
+		Num = Xstart_div + (Ystart + i + 1) * (sOLED_DIS.OLED_Dis_Column / 2);
     }
 }
 
@@ -292,12 +306,12 @@ void OLED_DisWindow(POINT Xstart, POINT Ystart, POINT Xend, POINT Yend)
     OLED_SetWindow(Xstart, Ystart, Xend, Yend);
 	
 	//write data
-    COLOR *pBuf = (COLOR *)Buffer + Xstart + Ystart * (sOLED_DIS.OLED_Dis_Column / 2);
+    COLOR *pBuf = (COLOR *)Buffer + Xstart/2 + Ystart * (sOLED_DIS.OLED_Dis_Column / 2);
     for (page = 0; page < Ypoint; page++) {
         for(Column = 0; Column < Xpoint; Column++ ) {
             OLED_WriteData(*pBuf);
             pBuf++;
         }
-		pBuf = (COLOR *)Buffer + Xstart + (Ystart + page + 1) * (sOLED_DIS.OLED_Dis_Column / 2);
+		pBuf = (COLOR *)Buffer + Xstart/2 + (Ystart + page + 1) * (sOLED_DIS.OLED_Dis_Column / 2);
 	}
 }

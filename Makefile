@@ -1,9 +1,11 @@
 PROJECT=Dust_Monitor_Ras
 # Set the FLAG OS_SYSTEM - CROSSLINUX or CROSSMAC or RASSBERYPI it depends which sistem are you use to build. 
-OS_SYSTEM=CROSSLINUX
+OS_SYSTEM=CROSSMAC
 
 ifeq ($(OS_SYSTEM),CROSSLINUX)
-SYSROOT_PATH=/home/muxamor/Develop/RaspberryPi/sysroot
+	SYSROOT_PATH=/home/muxamor/Develop/RaspberryPi/sysroot
+else ifeq ($(OS_SYSTEM),CROSSMAC)
+	SYSROOT_PATH=/Users/Ivan/Development/RaspberryPi/sysroot
 endif
 
 # Directory for C-Source
@@ -18,7 +20,9 @@ CINCLUDE +=	-I$(CURDIR)/include/OLED
 CINCLUDE +=	-I$(CURDIR)/include/OLED/Fonts
 
 ifeq ($(OS_SYSTEM),CROSSLINUX)
-CINCLUDE +=	-I/home/muxamor/Develop/RaspberryPi/sysroot/usr/include
+	CINCLUDE +=	-I/home/muxamor/Develop/RaspberryPi/sysroot/usr/include
+else ifeq ($(OS_SYSTEM),CROSSMAC)
+	CINCLUDE +=	-I/Users/Ivan/Development/RaspberryPi/sysroot/usr/include
 endif
 
 # Directory for object files
@@ -50,8 +54,8 @@ ifeq ($(OS_SYSTEM),CROSSLINUX)
 CC = "/opt/cross-pi-gcc-6.3.0-2/bin/arm-linux-gnueabihf-gcc"
 LD = "/opt/cross-pi-gcc-6.3.0-2/bin/arm-linux-gnueabihf-gcc"
 else ifeq ($(OS_SYSTEM),CROSSMAC)
-CC = "gcc"
-LD = "gcc"
+CC = "/usr/local/linaro/arm-linux-gnueabihf/bin/arm-linux-gnueabihf-gcc"
+LD = "/usr/local/linaro/arm-linux-gnueabihf/bin/arm-linux-gnueabihf-gcc"
 else ifeq ($(OS_SYSTEM),RASSBERYPI)
 CC = "gcc"
 LD = "gcc"
@@ -102,7 +106,8 @@ $(PROJECT): $(COBJ)
 	@echo $(MSG_LINKING)
 	$(LD) -o $@ $^ $(CFLAGS) $(LDFLAGS) $(LIB)
 	@echo $(MSG_EMPTYLINE)
-	@echo $(MSG_SUCCESS) $(PROJECT)
+	@echo $(MSG_SUCCESS) 
+	@echo $(PROJECT)
 
 # Compiler call
 $(COBJ): $(OBJDIR)/%.o: %.c $(DEPS)
