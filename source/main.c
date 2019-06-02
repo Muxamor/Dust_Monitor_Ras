@@ -87,7 +87,7 @@ int main(void){
 	struct tm *timenow;
 
 	FILE *OutputCSV;
-	char *FileNameTemp = "/home/pi/Output_";
+	char *FileNameTemp = "/home/pi/Dust_monitor_";
 	char CurFileName[100];
 	int8_t TimeGap[3][2] = { { 0, 2 }, { 0, 2 }, { 0, 2 } }; // массив таймеров (мин, сек) для периодов ожидания, продувки и измерения соответственно
 	int8_t Period;// Возможные значения 0 - ожидание, 1 -продувка датчиков и 2 - измерение
