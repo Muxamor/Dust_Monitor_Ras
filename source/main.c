@@ -38,21 +38,15 @@ void CoordInit ( struct DisplayArea *Area, POINT x_start, POINT y_start, POINT x
 }
 
 void ShowFileError( FILE *File,  struct DisplayArea ErrorArea ){
-
-	char *FlashErrorTxt = "Flash disk error!";
-	char Error[20];
-
-
 	//Обработка ошибок открытия файла
 	if ( File == NULL ){
-		strcpy( Error, FlashErrorTxt );
+		GUI_Show_OLED_string( ErrorArea.x1, ErrorArea.y1, ErrorArea.x2, ErrorArea.y2, &Font12, "Flash disk error!", WHITE);
+		OLED_DisWindow( ErrorArea.x1, ErrorArea.y1, ErrorArea.x2, ErrorArea.y2 );
 	}else{
-		strcpy( Error, "" );
+		OLED_ClearWindow( ErrorArea.x1, ErrorArea.y1, ErrorArea.x2, ErrorArea.y2, WHITE);
 	}
-
-	GUI_Show_OLED_string( ErrorArea.x1, ErrorArea.y1, ErrorArea.x2, ErrorArea.y2, &Font12, Error, WHITE);
-	OLED_DisWindow( ErrorArea.x1, ErrorArea.y1, ErrorArea.x2, ErrorArea.y2 );
 }
+
 
 int main(void){
 	printf("**********System Initialization**********\r\n");
@@ -136,6 +130,7 @@ int main(void){
 			OutputCSV = fopen( CurFileName, "w");
 
 			ShowFileError( OutputCSV, ErrorArea);
+
 			if ( OutputCSV != NULL ) {
 				//Если файл открыт успешно, выведем заголовок таблицы
 		//		fprintf( OutputCSV, "Срок замера,,Метео,,\"Массовые концентрации, мг/мг3 или мкг/м3\",,,,,,;\n");
@@ -170,11 +165,9 @@ int main(void){
 					if ( Period == 0 ){
 						// Окончание периода ожидания, переход к Продувке датчиков
 						GUI_Show_OLED_string( PeriodDescrArea.x1, PeriodDescrArea.y1, PeriodDescrArea.x2, PeriodDescrArea.y2, &Font12, "Preparing:",WHITE);
-						OLED_DisWindow( PeriodDescrArea.x1, PeriodDescrArea.y1, PeriodDescrArea.x2, PeriodDescrArea.y2 );
 					} else if ( Period == 1 ){
 						// Окончание периода продувки датчиков, переход к измерению
 						GUI_Show_OLED_string( PeriodDescrArea.x1, PeriodDescrArea.y1, PeriodDescrArea.x2, PeriodDescrArea.y2, &Font12, "Measuring:",WHITE);
-						OLED_DisWindow( PeriodDescrArea.x1, PeriodDescrArea.y1, PeriodDescrArea.x2, PeriodDescrArea.y2 );
 					} else if ( Period == 2 ){
 						// Окончание периода измерения, переход к ожиданию
 
@@ -188,8 +181,9 @@ int main(void){
 						}
 
 						GUI_Show_OLED_string( PeriodDescrArea.x1, PeriodDescrArea.y1, PeriodDescrArea.x2, PeriodDescrArea.y2, &Font12, "Next start:",WHITE);
-						OLED_DisWindow( PeriodDescrArea.x1, PeriodDescrArea.y1, PeriodDescrArea.x2, PeriodDescrArea.y2 );
 					}
+					//обновим PeriodDescrArea
+					OLED_DisWindow( PeriodDescrArea.x1, PeriodDescrArea.y1, PeriodDescrArea.x2, PeriodDescrArea.y2 );
 
 					Period = (Period + 1) % NumOfPeriods;
 					back_timer_min = TimeGap[Period][0];
@@ -202,13 +196,18 @@ int main(void){
 				//Выведем полученные значения измерений
 				for( i = 0; i < 4; i++ ){
 
-					Result[i].Value = rand()%1000;
-					if (Result[i].Value < 0 ){
-						Result[i].Value = Result[i].Value* (-1);
-					}
+					Result[i].Value = rand()%1000;//имулируется получение значения с датчика
 
 					OLED_ClearWindow( Result[i].Area.x1, Result[i].Area.y1, Result[i].Area.x2, Result[i].Area.y2, WHITE);
-					GUI_DisNum( Result[i].Area.x1, Result[i].Area.y1, Result[i].Value, &Font12, FONT_BACKGROUND, WHITE );
+					if (Result[i].Value < 0 ){ // ошибка получения данных с датчика
+
+						GUI_DisString_EN( Result[i].Area.x1, Result[i].Area.y1, "Error", &Font12, FONT_BACKGROUND, WHITE  );
+
+					} else {
+
+						GUI_DisNum( Result[i].Area.x1, Result[i].Area.y1, Result[i].Value, &Font12, FONT_BACKGROUND, WHITE );
+					}
+
 					OLED_DisWindow( Result[i].Area.x1, Result[i].Area.y1, Result[i].Area.x2, Result[i].Area.y2 );
 				}
 			}
