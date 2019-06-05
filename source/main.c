@@ -10,6 +10,7 @@
 #include <stdio.h>		//printf()
 #include <string.h>
 #include <stdlib.h>		//exit()
+#include <errno.h>
 
 #include "main.h"
 #include "OLED_Driver.h"
@@ -17,6 +18,10 @@
 #include "DEV_Config.h"
 
 #include <time.h>
+
+//#include <wiringSerial.h>
+
+
 
 struct DisplayArea{
 	POINT x1;
@@ -51,10 +56,18 @@ void ShowFileError( FILE *File,  struct DisplayArea ErrorArea ){
 int main(void){
 	printf("**********System Initialization**********\r\n");
 	if(System_Init()){ //wiringPi System Initialization
+		//fprintf (stdout, "WiringPi System Initialization: %s\n", strerror (errno)) ;
+		perror("WiringPi System Initialization - FAILUR");
 		exit(0);
 	}
 
+	//int fd_UART;
+	//fd_UART = serialOpen ("/dev/ttyAMA0", 115200);
+	//serialPutchar (fd_UART, 'A');
+	//serialGetchar (fd_UART);
+
 	printf("**********Init OLED**********\r\n");
+
 	OLED_SCAN_DIR OLED_ScanDir = SCAN_DIR_DFT;//SCAN_DIR_DFT = D2U_L2R
 	OLED_Init(OLED_ScanDir );
 
@@ -63,18 +76,16 @@ int main(void){
 	OLED_Clear(OLED_BACKGROUND);//OLED_BACKGROUND
 	OLED_Display();
 
-	GUI_DisString_EN(20 , 30, "PM1   = 256", &Font12, FONT_BACKGROUND, WHITE);
-	GUI_DisString_EN(20 , 45, "PM2.5 = 240", &Font12, FONT_BACKGROUND, WHITE);
-	GUI_DisString_EN(20 , 60, "PM10  = 230", &Font12, FONT_BACKGROUND, WHITE);
-    GUI_DisString_EN(20 , 75, "PM100 = 220", &Font12, FONT_BACKGROUND, WHITE);
-
-    GUI_DisString_EN(0 , 15,"Next start: 09:36", &Font12, FONT_BACKGROUND, WHITE);
-
+	GUI_DisString_EN(0 , 15,"Next start:   ", &Font12, FONT_BACKGROUND, WHITE);
+	GUI_DisString_EN(20 , 30, "PM1   =    ", &Font12, FONT_BACKGROUND, WHITE);
+	GUI_DisString_EN(20 , 45, "PM2.5 =    ", &Font12, FONT_BACKGROUND, WHITE);
+	GUI_DisString_EN(20 , 60, "PM10  =    ", &Font12, FONT_BACKGROUND, WHITE);
+    GUI_DisString_EN(20 , 75, "PM100 =    ", &Font12, FONT_BACKGROUND, WHITE);
+    GUI_OLED_Show_IP_address( 0, 103, 127, 127, WHITE);
     OLED_Display();
 
-
-    GUI_OLED_Show_IP_address( 0, 103, 127, 127, WHITE);
-    OLED_DisWindow(0, 103, 127, 127);
+ //   GUI_OLED_Show_IP_address( 0, 103, 127, 127, WHITE);
+   // OLED_DisWindow(0, 103, 127, 127);
 
 	printf("Show time\r\n");
 	time_t now;
