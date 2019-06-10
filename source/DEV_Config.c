@@ -29,6 +29,12 @@ uint8_t System_Init(void)
     pinMode(OLED_RST,      OUTPUT);
     pinMode(OLED_DC,       OUTPUT);
     pinMode(OLED_CS,       OUTPUT);
+    pinMode(17,       OUTPUT); // SN74LV4052A - A signal
+    pinMode(27,       OUTPUT); // SN74LV4052A - B signal
+    pinMode(22,       OUTPUT); // SN74LV4052A - INH signal
+
+    pinMode(5,       OUTPUT); // PMS-7003 - SET signal
+    pinMode(6,       OUTPUT); // PMS-7003 - Reset signal
 
 #if USE_SPI_4W
 	//3.spi init
@@ -79,6 +85,35 @@ void I2C_Write_Byte(uint8_t value, uint8_t Cmd)
             break;
     }	
 }
+
+/********************************************************************************
+function:	Hardware interface
+UART Multiplexor base at SN&$LV4052A
+********************************************************************************/
+void SN74_MUX_to_PMS_7003(void){
+	SN74_RST_A;
+	SN74_RST_B;
+	SN74_RST_INH;
+}
+
+void SN74_MUX_to_SDS198(void){
+	SN74_SET_A;
+	SN74_RST_B;
+	SN74_RST_INH;
+}
+
+void SN74_MUX_to_SIM7000E(void){
+	SN74_RST_A;
+	SN74_SET_B;
+	SN74_RST_INH;
+}
+
+void SN74_MUX_to_External_Gas_Sensor(void){
+	SN74_SET_A;
+	SN74_SET_B;
+	SN74_RST_INH;
+}
+
 
 /*********************************************
 *

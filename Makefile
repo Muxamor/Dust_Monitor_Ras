@@ -40,6 +40,7 @@ DEPS = # \
 # Compiler object files 
 COBJ =\
  $(OBJDIR)/main.o\
+ $(OBJDIR)/dust_sensor.o\
  $(OBJDIR)/font8.o\
  $(OBJDIR)/font12.o\
  $(OBJDIR)/font16.o\

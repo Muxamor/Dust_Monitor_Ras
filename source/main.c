@@ -13,6 +13,7 @@
 #include <errno.h>
 
 #include "main.h"
+#include "dust_sensor.h"
 #include "OLED_Driver.h"
 #include "OLED_GUI.h"
 #include "DEV_Config.h"
@@ -61,15 +62,34 @@ int main(void){
 		exit(0);
 	}
 
-	//int fd_UART;
-	//fd_UART = serialOpen ("/dev/ttyAMA0", 115200);
-	//serialPutchar (fd_UART, 'A');
-	//serialGetchar (fd_UART);
+
+	_data_pms_7003 DATA_PMS_7003, *data_pms_7003 = &DATA_PMS_7003;
+
+	int fd_UART,counter_data_uart;
+	fd_UART = serialOpen ("/dev/ttyAMA0", 9600);
+
+	Dust_Sensor_PMS_7003_Init(fd_UART,  MODE_PASSIVE);
+
+	Dust_Sensor_PMS_7003_Read_Data_Passive_Mode (fd_UART,  data_pms_7003);
+
+/*		while(counter_data_uart!=8){
+			counter_data_uart = serialDataAvail (fd_UART);
+		}
+
+	serialGetchar (fd_UART);*/
+
 
 	printf("**********Init OLED**********\r\n");
 
 	OLED_SCAN_DIR OLED_ScanDir = SCAN_DIR_DFT;//SCAN_DIR_DFT = D2U_L2R
 	OLED_Init(OLED_ScanDir );
+
+	//Dust_Sensor_PMS_7003_Init();
+
+
+
+
+
 
 	GUI_OLED_Show_Start_screan(1);
 

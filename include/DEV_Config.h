@@ -35,6 +35,14 @@
 #define OLED_DC_0       digitalWrite(OLED_DC,LOW)
 #define OLED_DC_1       digitalWrite(OLED_DC,HIGH)
 
+//SN74LV4052A - multiplexor UART
+#define SN74_SET_A     digitalWrite(17,HIGH)
+#define SN74_SET_B     digitalWrite(27,HIGH)
+#define SN74_SET_INH     digitalWrite(22,HIGH)
+#define SN74_RST_A     digitalWrite(17,LOW)
+#define SN74_RST_B     digitalWrite(27,LOW)
+#define SN74_RST_INH     digitalWrite(22,LOW)
+
 /*------------------------------------------------------------------------------------------------------*/
 
 uint8_t System_Init(void);
@@ -42,6 +50,11 @@ void    System_Exit(void);
 
 void SPI4W_Write_Byte(uint8_t value);
 void I2C_Write_Byte(uint8_t value, uint8_t Cmd);
+
+void SN74_MUX_to_PMS_7003(void);
+void SN74_MUX_to_SDS198(void);
+void SN74_MUX_to_SIM7000E(void);
+void SN74_MUX_to_External_Gas_Sensor(void);
 
 void Driver_Delay_ms(uint32_t xms);
 void Driver_Delay_us(uint32_t xus);
