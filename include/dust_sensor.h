@@ -36,7 +36,7 @@ typedef struct{
 #define PMS_7003_Set_HIGHT     digitalWrite(5,HIGH)
 #define PMS_7003_Set_LOW       digitalWrite(5,LOW)
 
-int Dust_Sensor_PMS_7003_Init(int fd, uint8_t mode);
+
 int Dust_Sensor_PMS_7003_Set_Mode(int fd, uint8_t mode);
 void Dust_Sensor_PMS_7003_Reset(void);
 int Dust_Sensor_PMS_7003_Read_Data_Passive_Mode (int fd,  _data_pms_7003 *data_pms_7003);

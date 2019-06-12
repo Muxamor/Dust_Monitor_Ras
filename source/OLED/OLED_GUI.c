@@ -337,19 +337,25 @@ void GUI_DisNum(POINT Xpoint, POINT Ypoint, int32_t Nummber,
         return;
     }
 
-    //Converts a number to a string
-    while(Nummber) {
-        Num_Array[Num_Bit] = Nummber % 10 + '0';
-        Num_Bit++;
-        Nummber /= 10;
+    if(Nummber == 0){
+    	Num_Array[0] = '0';
+    	Num_Bit++;
+
+    }else{
+    	//Converts a number to a string
+    	while(Nummber) {
+    		Num_Array[Num_Bit] = Nummber % 10 + '0';
+    		Num_Bit++;
+    		Nummber /= 10;
+    	}
     }
 
     //The string is inverted
-    while(Num_Bit > 0) {
-        Str_Array[Str_Bit] = Num_Array[Num_Bit -1];
-        Str_Bit ++;
-        Num_Bit --;
-    }
+	while(Num_Bit > 0) {
+		Str_Array[Str_Bit] = Num_Array[Num_Bit -1];
+		Str_Bit ++;
+		Num_Bit --;
+	}
 
     //show
     GUI_DisString_EN(Xpoint, Ypoint, (const char*)pStr, Font, Color_Background, Color_Foreground );
@@ -640,7 +646,7 @@ void GUI_OLED_Show_IP_address(POINT Xstart, POINT Ystart, POINT Xend, POINT Yend
 			tmpAddrPtr=&((struct sockaddr_in *)ifa->ifa_addr)->sin_addr;
 			char addressBuffer[INET_ADDRSTRLEN];
 			inet_ntop(AF_INET, tmpAddrPtr, addressBuffer, INET_ADDRSTRLEN);
-			printf("%s: %s\n", ifa->ifa_name, addressBuffer);
+			//printf("%s: %s\n", ifa->ifa_name, addressBuffer);
 
 			//print on OLED display 128x128
 			if(strcmp(ifa->ifa_name, "eth0")==0){

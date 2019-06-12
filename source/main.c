@@ -33,7 +33,7 @@ struct DisplayArea{
 
 struct MeasureResult{
 	struct DisplayArea Area;
-	int8_t Value;
+	int16_t Value;
 };
 
 void CoordInit ( struct DisplayArea *Area, POINT x_start, POINT y_start, POINT x_end, POINT y_end){
@@ -55,6 +55,12 @@ void ShowFileError( FILE *File,  struct DisplayArea ErrorArea ){
 
 
 int main(void){
+
+	_data_pms_7003 DATA_PMS_7003, *data_pms_7003 = &DATA_PMS_7003;
+	int fd_UART,counter_data_uart;
+	int retval_pms_7003 = 0;
+	uint8_t count_error_sensor_pms_7003 = 0;
+
 	printf("**********System Initialization**********\r\n");
 	if(System_Init()){ //wiringPi System Initialization
 		//fprintf (stdout, "WiringPi System Initialization: %s\n", strerror (errno)) ;
@@ -62,38 +68,39 @@ int main(void){
 		exit(0);
 	}
 
-
-	_data_pms_7003 DATA_PMS_7003, *data_pms_7003 = &DATA_PMS_7003;
-
-	int fd_UART,counter_data_uart;
-	fd_UART = serialOpen ("/dev/ttyAMA0", 9600);
-
-	Dust_Sensor_PMS_7003_Init(fd_UART,  MODE_PASSIVE);
-
-	Dust_Sensor_PMS_7003_Read_Data_Passive_Mode (fd_UART,  data_pms_7003);
-
-/*		while(counter_data_uart!=8){
-			counter_data_uart = serialDataAvail (fd_UART);
-		}
-
-	serialGetchar (fd_UART);*/
-
-
 	printf("**********Init OLED**********\r\n");
-
 	OLED_SCAN_DIR OLED_ScanDir = SCAN_DIR_DFT;//SCAN_DIR_DFT = D2U_L2R
 	OLED_Init(OLED_ScanDir );
 
-	//Dust_Sensor_PMS_7003_Init();
-
-
-
-
-
-
 	GUI_OLED_Show_Start_screan(1);
 
-	OLED_Clear(OLED_BACKGROUND);//OLED_BACKGROUND
+	OLED_Clear(OLED_BACKGROUND);
+	OLED_Display();
+
+	fd_UART = serialOpen("/dev/ttyAMA0", 9600);
+
+	GUI_DisString_EN(0 , 15,"Initialization: ", &Font12, FONT_BACKGROUND, WHITE);
+
+	Dust_Sensor_PMS_7003_Reset();
+	SN74_MUX_to_PMS_7003();
+
+	retval_pms_7003 =  Dust_Sensor_PMS_7003_Set_Mode(fd_UART, MODE_PASSIVE);
+	if(retval_pms_7003 == -1){
+		GUI_DisString_EN(0 , 30,"Sensor PMS-7003", &Font12, FONT_BACKGROUND, WHITE);
+		GUI_DisString_EN(0 , 45,"ERROR  ", &Font12, FONT_BACKGROUND, WHITE);
+		perror("Initialization dust sensor PMS-7003 - FAILUR");
+	}else{
+		GUI_DisString_EN(0 , 30,"Sensor PMS-7003 OK", &Font12, FONT_BACKGROUND, WHITE);
+	}
+
+	//	GUI_DisString_EN(0 , 45,"Sensor SDS198   OK", &Font12, FONT_BACKGROUND, WHITE);
+
+	Dust_Sensor_PMS_7003_Set_Mode(fd_UART, MODE_SLEEP);
+	OLED_Display();
+	Driver_Delay_ms(2000);
+
+
+	OLED_Clear(OLED_BACKGROUND);
 	OLED_Display();
 
 	GUI_DisString_EN(0 , 15,"Next start:   ", &Font12, FONT_BACKGROUND, WHITE);
@@ -104,9 +111,6 @@ int main(void){
     GUI_OLED_Show_IP_address( 0, 103, 127, 127, WHITE);
     OLED_Display();
 
- //   GUI_OLED_Show_IP_address( 0, 103, 127, 127, WHITE);
-   // OLED_DisWindow(0, 103, 127, 127);
-
 	printf("Show time\r\n");
 	time_t now;
 	struct tm *timenow;
@@ -114,7 +118,7 @@ int main(void){
 	FILE *OutputCSV;
 	char *FileNameTemp = "/home/pi/Dust_monitor_";
 	char CurFileName[100];
-	int8_t TimeGap[3][2] = { { 0, 2 }, { 0, 2 }, { 0, 2 } }; // массив таймеров (мин, сек) для периодов ожидания, продувки и измерения соответственно
+	int8_t TimeGap[3][2] = { { 0, 10 }, { 0, 30 }, { 0, 30 } }; // массив таймеров (мин, сек) для периодов ожидания, продувки и измерения соответственно
 	int8_t Period;// Возможные значения 0 - ожидание, 1 -продувка датчиков и 2 - измерение
 	int8_t NumOfPeriods = 3; // Количество периодов
 
@@ -144,7 +148,7 @@ int main(void){
 
 	while(1){
 
-		//usleep(250000);
+		usleep(250000);
 		time(&now);
 		timenow = localtime(&now);
 
@@ -166,7 +170,7 @@ int main(void){
 				//Если файл открыт успешно, выведем заголовок таблицы
 		//		fprintf( OutputCSV, "Срок замера,,Метео,,\"Массовые концентрации, мг/мг3 или мкг/м3\",,,,,,;\n");
 		//		fprintf( OutputCSV, "Дата, Время, \"Та, c\",\"Pa, мм рт ст\",NO2,SO2,PM1,PM2.5,PM10,PM100;\n");
-				fprintf( OutputCSV, "Срок замера,,\"Массовые концентрации, мг/мг3 или мкг/м3\",,,,;\n");
+				fprintf( OutputCSV, "Срок замера,,\"Массовые концентрации, млг/м3 или мкг/м3\",,,,;\n");
 				fprintf( OutputCSV, "Дата, Время, PM1,PM2.5,PM10,PM100;\n");
 				fclose( OutputCSV );
 			}
@@ -195,12 +199,20 @@ int main(void){
 
 					if ( Period == 0 ){
 						// Окончание периода ожидания, переход к Продувке датчиков
+						SN74_MUX_to_PMS_7003();
+						Dust_Sensor_PMS_7003_Set_Mode(fd_UART, MODE_WAKEUP);
 						GUI_Show_OLED_string( PeriodDescrArea.x1, PeriodDescrArea.y1, PeriodDescrArea.x2, PeriodDescrArea.y2, &Font12, "Preparing:",WHITE);
+
 					} else if ( Period == 1 ){
 						// Окончание периода продувки датчиков, переход к измерению
+						SN74_MUX_to_PMS_7003();
+						Dust_Sensor_PMS_7003_Set_Mode(fd_UART, MODE_PASSIVE);
 						GUI_Show_OLED_string( PeriodDescrArea.x1, PeriodDescrArea.y1, PeriodDescrArea.x2, PeriodDescrArea.y2, &Font12, "Measuring:",WHITE);
+
 					} else if ( Period == 2 ){
 						// Окончание периода измерения, переход к ожиданию
+						SN74_MUX_to_PMS_7003();
+						Dust_Sensor_PMS_7003_Set_Mode(fd_UART, MODE_SLEEP);
 
 						//Откроем файл текущего дня
 						OutputCSV = fopen( CurFileName, "a");
@@ -225,16 +237,38 @@ int main(void){
 			}
 			if ( Period == 2 ){
 				//Выведем полученные значения измерений
+				retval_pms_7003 = 0;
+				SN74_MUX_to_PMS_7003();
+				retval_pms_7003 = Dust_Sensor_PMS_7003_Read_Data_Passive_Mode (fd_UART, data_pms_7003);
+				if (retval_pms_7003 == -1 ){
+					count_error_sensor_pms_7003++;
+					serialFlush ( fd_UART );
+				}else{
+					count_error_sensor_pms_7003 = 0;
+				}
+
+				if(count_error_sensor_pms_7003 >= 3 ){ //если происходит три ошибки подряд ресетим датчик
+					retval_pms_7003 = 0;
+					Dust_Sensor_PMS_7003_Reset();
+					SN74_MUX_to_PMS_7003();
+					retval_pms_7003 =  Dust_Sensor_PMS_7003_Set_Mode(fd_UART, MODE_PASSIVE);
+
+				}
+
+				Result[0].Value = data_pms_7003->pm1_0_atmospheric_envir;
+				Result[1].Value = data_pms_7003->pm2_5_atmospheric_envir;
+				Result[2].Value = data_pms_7003->pm10_atmospheric_envir;
+				Result[3].Value = 789; // Датчик еще не подключен
+
 				for( i = 0; i < 4; i++ ){
 
-					Result[i].Value = rand()%1000;//имулируется получение значения с датчика
-
 					OLED_ClearWindow( Result[i].Area.x1, Result[i].Area.y1, Result[i].Area.x2, Result[i].Area.y2, WHITE);
-					if (Result[i].Value < 0 ){ // ошибка получения данных с датчика
+
+					if (retval_pms_7003 < 0 ){ // errors sensor
 
 						GUI_DisString_EN( Result[i].Area.x1, Result[i].Area.y1, "Error", &Font12, FONT_BACKGROUND, WHITE  );
 
-					} else {
+					} else { // show data from sensor
 
 						GUI_DisNum( Result[i].Area.x1, Result[i].Area.y1, Result[i].Value, &Font12, FONT_BACKGROUND, WHITE );
 					}

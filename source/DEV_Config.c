@@ -94,24 +94,28 @@ void SN74_MUX_to_PMS_7003(void){
 	SN74_RST_A;
 	SN74_RST_B;
 	SN74_RST_INH;
+	usleep(50000);
 }
 
 void SN74_MUX_to_SDS198(void){
 	SN74_SET_A;
 	SN74_RST_B;
 	SN74_RST_INH;
+	usleep(50000);
 }
 
 void SN74_MUX_to_SIM7000E(void){
 	SN74_RST_A;
 	SN74_SET_B;
 	SN74_RST_INH;
+	usleep(50000);
 }
 
 void SN74_MUX_to_External_Gas_Sensor(void){
 	SN74_SET_A;
 	SN74_SET_B;
 	SN74_RST_INH;
+	usleep(50000);
 }
 
 

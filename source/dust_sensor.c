@@ -7,18 +7,6 @@
 #include "dust_sensor.h"
 #include "DEV_Config.h"
 
-int Dust_Sensor_PMS_7003_Init(int fd, uint8_t mode){
-
-	PMS_7003_Reset_HIGHT;
-	PMS_7003_Set_HIGHT;
-	usleep(1);
-
-	int ret_val=0;
-
-	ret_val = Dust_Sensor_PMS_7003_Set_Mode(fd,mode);
-
-	return ret_val;
-}
 
 int Dust_Sensor_PMS_7003_Set_Mode(int fd, uint8_t mode){
 
@@ -27,40 +15,41 @@ int Dust_Sensor_PMS_7003_Set_Mode(int fd, uint8_t mode){
 	uint16_t counter=0;
 
 	if( mode == MODE_PASSIVE ){
-			const uint8_t buf_passive_mode[7] = {0x42,0x4D,0xE1,0x00,0x00,0x01,0x70}; // set passive mode
-			const uint8_t buf_passive_mode_answer[8] = {0x42,0x4D,0x00,0x04,0xE1,0x00,0x01,0x74}; //answer at passive mode command
-			for( i=0; i<7; i++){
-				serialPutchar ( fd, buf_passive_mode[i] );
-			}
-			usleep(50000);
+		const uint8_t buf_passive_mode[7] = {0x42,0x4D,0xE1,0x00,0x00,0x01,0x70}; // set passive mode
+		const uint8_t buf_passive_mode_answer[8] = {0x42,0x4D,0x00,0x04,0xE1,0x00,0x01,0x74}; //answer at passive mode command
+		for( i=0; i<7; i++){
+			serialPutchar ( fd, buf_passive_mode[i] );
+		}
 
-			serialFlush ( fd );//
+		usleep(70000);
 
-			for( i=0; i<7; i++){
-				serialPutchar ( fd, buf_passive_mode[i] );
-			}
+		serialFlush ( fd );
 
-			counter = 0;
-			counter_get_data = 0;
-			while(counter_get_data != 8){
-				counter_get_data = serialDataAvail (fd);
-				counter++;
-				if( counter == 100000 ){
-					perror("Set passive mode PMS-7003 - FAILUR");
-					return -1;
-				}
-			}
+		for( i=0; i<7; i++){
+			serialPutchar ( fd, buf_passive_mode[i] );
+		}
 
-			for( i=0; i < counter_get_data; i++){
-				get_buf[i] = serialGetchar (fd);
+		counter = 0;
+		counter_get_data = 0;
+		while(counter_get_data != 8){
+			counter_get_data = serialDataAvail (fd);
+			counter++;
+			if( counter == 100000 ){
+				perror("Set passive mode PMS-7003 - FAILUR");
+				return -1;
 			}
+		}
 
-			for( i=0; i < 8; i++ ){
-				if( get_buf[i] != buf_passive_mode_answer[i] ) {
-					perror("Set passive mode PMS-7003 - answer is wrong");
-					return -1;
-				}
+		for( i=0; i < counter_get_data; i++){
+			get_buf[i] = serialGetchar (fd);
+		}
+
+		for( i=0; i < 8; i++ ){
+			if( get_buf[i] != buf_passive_mode_answer[i] ) {
+				perror("Set passive mode PMS-7003 - answer is wrong");
+				return -1;
 			}
+		}
 
 	}else if( mode == MODE_ACTIVE ){
 		const uint8_t buf_active_mode[7] = {0x42,0x4D,0xE1,0x00,0x01,0x01,0x71}; // set active mode
@@ -83,8 +72,9 @@ int Dust_Sensor_PMS_7003_Set_Mode(int fd, uint8_t mode){
 		//no answer at comman wakeup;
 		//Use pin:
 		PMS_7003_Set_HIGHT;
-		sleep(1);
 	}
+
+	usleep(50000); // need for sensor some times sensor no answer after command and get answer. Next command blocked sensor without this sleep
 
 	return 0;
 }
@@ -93,11 +83,10 @@ int Dust_Sensor_PMS_7003_Set_Mode(int fd, uint8_t mode){
 void Dust_Sensor_PMS_7003_Reset(void){
 
 	PMS_7003_Reset_LOW;
-	PMS_7003_Set_LOW;
 	sleep(1);
 	PMS_7003_Reset_HIGHT;
 	PMS_7003_Set_HIGHT;
-	sleep(1);
+	sleep(2);
 }
 
 
@@ -121,7 +110,7 @@ int Dust_Sensor_PMS_7003_Read_Data_Passive_Mode (int fd,  _data_pms_7003 *data_p
 	while(counter_get_data != 32){
 		counter_get_data = serialDataAvail (fd);
 		counter++;
-		if( counter == 100000 ){
+		if( counter == 200000 ){
 			perror("Request data PMS-7003, no get data");
 			return -1;
 		}
