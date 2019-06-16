@@ -57,9 +57,11 @@ void ShowFileError( FILE *File,  struct DisplayArea ErrorArea ){
 int main(void){
 
 	_data_pms_7003 DATA_PMS_7003, *data_pms_7003 = &DATA_PMS_7003;
+	uint16_t DATA_SDS198, *data_sds198 = &DATA_SDS198;
 	int fd_UART,counter_data_uart;
-	int retval_pms_7003 = 0;
+	int retval_pms_7003 = 0, retval_SDS198 = 0;
 	uint8_t count_error_sensor_pms_7003 = 0;
+	uint8_t count_error_sensor_SDS198 = 0;
 
 	printf("**********System Initialization**********\r\n");
 	if(System_Init()){ //wiringPi System Initialization
@@ -72,7 +74,7 @@ int main(void){
 	OLED_SCAN_DIR OLED_ScanDir = SCAN_DIR_DFT;//SCAN_DIR_DFT = D2U_L2R
 	OLED_Init(OLED_ScanDir );
 
-	GUI_OLED_Show_Start_screan(1);
+	GUI_OLED_Show_Start_screan(3000);
 
 	OLED_Clear(OLED_BACKGROUND);
 	OLED_Display();
@@ -80,22 +82,45 @@ int main(void){
 	fd_UART = serialOpen("/dev/ttyAMA0", 9600);
 
 	GUI_DisString_EN(0 , 15,"Initialization: ", &Font12, FONT_BACKGROUND, WHITE);
+	OLED_Display();
+/*
+	SN74_MUX_to_SDS198();
+
+	retval_SDS198 =  Dust_Sensor_SDS198_Set_Mode(fd_UART, MODE_SLEEP);
+	if(retval_SDS198 == -1){
+		while (1);
+	}
+	sleep(1);
+	retval_SDS198 =  Dust_Sensor_SDS198_Set_Mode(fd_UART, MODE_WAKEUP);
+	if(retval_SDS198 == -1){
+		while (1);
+	}
+	retval_SDS198 =  Dust_Sensor_SDS198_Set_Mode(fd_UART, MODE_PASSIVE);
+	if(retval_SDS198 == -1){
+		while (1);
+	}
+*/
 
 	Dust_Sensor_PMS_7003_Reset();
 	SN74_MUX_to_PMS_7003();
-
 	retval_pms_7003 =  Dust_Sensor_PMS_7003_Set_Mode(fd_UART, MODE_PASSIVE);
 	if(retval_pms_7003 == -1){
-		GUI_DisString_EN(0 , 30,"Sensor PMS-7003", &Font12, FONT_BACKGROUND, WHITE);
-		GUI_DisString_EN(0 , 45,"ERROR  ", &Font12, FONT_BACKGROUND, WHITE);
-		perror("Initialization dust sensor PMS-7003 - FAILUR");
+		GUI_DisString_EN(0 , 30,"PMS-7003     ERROR", &Font12, FONT_BACKGROUND, WHITE);
 	}else{
-		GUI_DisString_EN(0 , 30,"Sensor PMS-7003 OK", &Font12, FONT_BACKGROUND, WHITE);
+		GUI_DisString_EN(0 , 30,"PMS-7003        OK", &Font12, FONT_BACKGROUND, WHITE);
 	}
-
-	//	GUI_DisString_EN(0 , 45,"Sensor SDS198   OK", &Font12, FONT_BACKGROUND, WHITE);
-
 	Dust_Sensor_PMS_7003_Set_Mode(fd_UART, MODE_SLEEP);
+	OLED_Display();
+
+	SN74_MUX_to_SDS198();
+	retval_SDS198 =  Dust_Sensor_SDS198_Set_Mode(fd_UART, MODE_PASSIVE);
+	if(retval_SDS198 == -1){
+		GUI_DisString_EN(0 , 45,"SDS198       ERROR", &Font12, FONT_BACKGROUND, WHITE);
+	}else{
+		GUI_DisString_EN(0 , 45,"SDS198          OK", &Font12, FONT_BACKGROUND, WHITE);
+	}
+	Dust_Sensor_SDS198_Set_Mode(fd_UART, MODE_SLEEP);
+
 	OLED_Display();
 	Driver_Delay_ms(2000);
 
@@ -148,7 +173,7 @@ int main(void){
 
 	while(1){
 
-		usleep(250000);
+		usleep(200000);
 		time(&now);
 		timenow = localtime(&now);
 
@@ -201,18 +226,25 @@ int main(void){
 						// Окончание периода ожидания, переход к Продувке датчиков
 						SN74_MUX_to_PMS_7003();
 						Dust_Sensor_PMS_7003_Set_Mode(fd_UART, MODE_WAKEUP);
+
+						SN74_MUX_to_SDS198();
+						Dust_Sensor_SDS198_Set_Mode(fd_UART,  MODE_WAKEUP);
 						GUI_Show_OLED_string( PeriodDescrArea.x1, PeriodDescrArea.y1, PeriodDescrArea.x2, PeriodDescrArea.y2, &Font12, "Preparing:",WHITE);
 
 					} else if ( Period == 1 ){
 						// Окончание периода продувки датчиков, переход к измерению
 						SN74_MUX_to_PMS_7003();
 						Dust_Sensor_PMS_7003_Set_Mode(fd_UART, MODE_PASSIVE);
+						//Sensor SDS198 have flash to  save setting passive mode.
 						GUI_Show_OLED_string( PeriodDescrArea.x1, PeriodDescrArea.y1, PeriodDescrArea.x2, PeriodDescrArea.y2, &Font12, "Measuring:",WHITE);
 
 					} else if ( Period == 2 ){
 						// Окончание периода измерения, переход к ожиданию
 						SN74_MUX_to_PMS_7003();
 						Dust_Sensor_PMS_7003_Set_Mode(fd_UART, MODE_SLEEP);
+
+						SN74_MUX_to_SDS198();
+						Dust_Sensor_SDS198_Set_Mode(fd_UART,  MODE_SLEEP);
 
 						//Откроем файл текущего дня
 						OutputCSV = fopen( CurFileName, "a");
@@ -237,8 +269,8 @@ int main(void){
 			}
 			if ( Period == 2 ){
 				//Выведем полученные значения измерений
-				retval_pms_7003 = 0;
 				SN74_MUX_to_PMS_7003();
+				retval_pms_7003 = 0;
 				retval_pms_7003 = Dust_Sensor_PMS_7003_Read_Data_Passive_Mode (fd_UART, data_pms_7003);
 				if (retval_pms_7003 == -1 ){
 					count_error_sensor_pms_7003++;
@@ -247,29 +279,41 @@ int main(void){
 					count_error_sensor_pms_7003 = 0;
 				}
 
-				if(count_error_sensor_pms_7003 >= 3 ){ //если происходит три ошибки подряд ресетим датчик
-					retval_pms_7003 = 0;
+				if(count_error_sensor_pms_7003 >= 2 ){ //если происходит три ошибки подряд ресетим датчик
 					Dust_Sensor_PMS_7003_Reset();
 					SN74_MUX_to_PMS_7003();
 					retval_pms_7003 =  Dust_Sensor_PMS_7003_Set_Mode(fd_UART, MODE_PASSIVE);
 
 				}
-
 				Result[0].Value = data_pms_7003->pm1_0_atmospheric_envir;
 				Result[1].Value = data_pms_7003->pm2_5_atmospheric_envir;
 				Result[2].Value = data_pms_7003->pm10_atmospheric_envir;
-				Result[3].Value = 789; // Датчик еще не подключен
+
+				SN74_MUX_to_SDS198();
+				retval_SDS198 = 0;
+				retval_SDS198 = Dust_Sensor_SDS198_Read_Data_Passive_Mode (fd_UART, data_sds198);
+				if (retval_SDS198 == -1 ){
+					count_error_sensor_SDS198++;
+					serialFlush ( fd_UART );
+				}else{
+					count_error_sensor_SDS198 = 0;
+				}
+
+				Result[3].Value = *data_sds198;
 
 				for( i = 0; i < 4; i++ ){
 
 					OLED_ClearWindow( Result[i].Area.x1, Result[i].Area.y1, Result[i].Area.x2, Result[i].Area.y2, WHITE);
 
-					if (retval_pms_7003 < 0 ){ // errors sensor
-
+					if ( (retval_pms_7003 < 0) && (i < 3)){ // errors sensor
 						GUI_DisString_EN( Result[i].Area.x1, Result[i].Area.y1, "Error", &Font12, FONT_BACKGROUND, WHITE  );
+					}else if(  (retval_pms_7003 == 0) && (i < 3) ) {
+						GUI_DisNum( Result[i].Area.x1, Result[i].Area.y1, Result[i].Value, &Font12, FONT_BACKGROUND, WHITE );
+					}
 
-					} else { // show data from sensor
-
+					if( (retval_SDS198 < 0) && (i == 3) ){
+						GUI_DisString_EN( Result[i].Area.x1, Result[i].Area.y1, "Error", &Font12, FONT_BACKGROUND, WHITE  );
+					}else if( (retval_SDS198 == 0) && (i == 3) ) {
 						GUI_DisNum( Result[i].Area.x1, Result[i].Area.y1, Result[i].Value, &Font12, FONT_BACKGROUND, WHITE );
 					}
 

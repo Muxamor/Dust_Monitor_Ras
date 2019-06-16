@@ -40,6 +40,8 @@ typedef struct{
 int Dust_Sensor_PMS_7003_Set_Mode(int fd, uint8_t mode);
 void Dust_Sensor_PMS_7003_Reset(void);
 int Dust_Sensor_PMS_7003_Read_Data_Passive_Mode (int fd,  _data_pms_7003 *data_pms_7003);
+int Dust_Sensor_SDS198_Set_Mode(int fd, uint8_t mode);
+int Dust_Sensor_SDS198_Read_Data_Passive_Mode (int fd, uint16_t *data_sds198);
 
 
 
