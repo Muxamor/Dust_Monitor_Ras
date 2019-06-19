@@ -21,8 +21,6 @@ uint8_t System_Init(void)
     if(wiringPiSetupGpio() < 0) { //use BCM2835 Pin number table
         printf("set wiringPi lib failed	!!! \r\n");
         return 1;
-    } else {
-        printf("set wiringPi lib success  !!! \r\n");
     }
 	
 	//2.GPIO config

@@ -47,10 +47,11 @@ void ShowFileError( FILE *File,  struct DisplayArea ErrorArea ){
 	//Обработка ошибок открытия файла
 	if ( File == NULL ){
 		GUI_Show_OLED_string( ErrorArea.x1, ErrorArea.y1, ErrorArea.x2, ErrorArea.y2, &Font12, "Flash disk error!", WHITE);
-		OLED_DisWindow( ErrorArea.x1, ErrorArea.y1, ErrorArea.x2, ErrorArea.y2 );
 	}else{
 		OLED_ClearWindow( ErrorArea.x1, ErrorArea.y1, ErrorArea.x2, ErrorArea.y2, WHITE);
 	}
+	OLED_DisWindow( ErrorArea.x1, ErrorArea.y1, ErrorArea.x2, ErrorArea.y2 );
+
 }
 
 
@@ -60,10 +61,36 @@ int main(void){
 	uint16_t DATA_SDS198, *data_sds198 = &DATA_SDS198;
 	int fd_UART,counter_data_uart;
 	int retval_pms_7003 = 0, retval_SDS198 = 0;
+	int i;
 	uint8_t count_error_sensor_pms_7003 = 0;
 	uint8_t count_error_sensor_SDS198 = 0;
 
-	printf("**********System Initialization**********\r\n");
+	time_t now;
+	struct tm *timenow;
+
+	FILE *OutputCSV;
+	char *FileNameTemp = "/media/pi/MONITORING/Dust_Monitoring/Dust_monitor_";
+	char CurFileName[100];
+	int8_t TimeGap[3][2] = { { 10, 00 }, { 0, 30 }, { 0, 30 } }; // массив таймеров (мин, сек) для периодов ожидания, продувки и измерения соответственно
+	int8_t Period;// Возможные значения 0 - ожидание, 1 -продувка датчиков и 2 - измерение
+	int8_t NumOfPeriods = 3; // Количество периодов
+
+	struct MeasureResult Result[4]; // массив измерений PM1, PM2.5, PM10, PM100
+
+	struct DisplayArea TimeDateArea = { 0, 0, 127, 12 };
+	struct DisplayArea PeriodDescrArea = { 0, 15, 83, 27 };
+	struct DisplayArea PeriodTimerArea = { 84, 15, 119, 27 };
+	struct DisplayArea ErrorArea = { 0, 88, 127, 102 };
+	struct DisplayArea IPArea = { 0, 103, 127, 127 };
+
+	uint8_t cur_time_day,new_time_day = 0;
+	uint8_t now_time_sec,new_time_sec = 0;
+	int8_t back_timer_min, back_timer_sec=0;
+
+
+	fd_UART = serialOpen("/dev/ttyAMA0", 9600);
+
+
 	if(System_Init()){ //wiringPi System Initialization
 		//fprintf (stdout, "WiringPi System Initialization: %s\n", strerror (errno)) ;
 		perror("WiringPi System Initialization - FAILUR");
@@ -75,31 +102,12 @@ int main(void){
 	OLED_Init(OLED_ScanDir );
 
 	GUI_OLED_Show_Start_screan(3000);
-
 	OLED_Clear(OLED_BACKGROUND);
 	OLED_Display();
 
-	fd_UART = serialOpen("/dev/ttyAMA0", 9600);
 
 	GUI_DisString_EN(0 , 15,"Initialization: ", &Font12, FONT_BACKGROUND, WHITE);
 	OLED_Display();
-/*
-	SN74_MUX_to_SDS198();
-
-	retval_SDS198 =  Dust_Sensor_SDS198_Set_Mode(fd_UART, MODE_SLEEP);
-	if(retval_SDS198 == -1){
-		while (1);
-	}
-	sleep(1);
-	retval_SDS198 =  Dust_Sensor_SDS198_Set_Mode(fd_UART, MODE_WAKEUP);
-	if(retval_SDS198 == -1){
-		while (1);
-	}
-	retval_SDS198 =  Dust_Sensor_SDS198_Set_Mode(fd_UART, MODE_PASSIVE);
-	if(retval_SDS198 == -1){
-		while (1);
-	}
-*/
 
 	Dust_Sensor_PMS_7003_Reset();
 	SN74_MUX_to_PMS_7003();
@@ -124,7 +132,6 @@ int main(void){
 	OLED_Display();
 	Driver_Delay_ms(2000);
 
-
 	OLED_Clear(OLED_BACKGROUND);
 	OLED_Display();
 
@@ -136,31 +143,6 @@ int main(void){
     GUI_OLED_Show_IP_address( 0, 103, 127, 127, WHITE);
     OLED_Display();
 
-	printf("Show time\r\n");
-	time_t now;
-	struct tm *timenow;
-
-	FILE *OutputCSV;
-	char *FileNameTemp = "/home/pi/Dust_monitor_";
-	char CurFileName[100];
-	int8_t TimeGap[3][2] = { { 0, 10 }, { 0, 30 }, { 0, 30 } }; // массив таймеров (мин, сек) для периодов ожидания, продувки и измерения соответственно
-	int8_t Period;// Возможные значения 0 - ожидание, 1 -продувка датчиков и 2 - измерение
-	int8_t NumOfPeriods = 3; // Количество периодов
-
-
-	struct MeasureResult Result[4]; // массив измерений PM1, PM2.5, PM10, PM100
-
-	struct DisplayArea TimeDateArea = { 0, 0, 127, 12 };
-	struct DisplayArea PeriodDescrArea = { 0, 15, 83, 27 };
-	struct DisplayArea PeriodTimerArea = { 84, 15, 119, 27 };
-	struct DisplayArea ErrorArea = { 0, 88, 127, 102 };
-	struct DisplayArea IPArea = { 0, 103, 127, 127 };
-
-	int i;
-
-	uint8_t cur_time_day,new_time_day = 0;
-	uint8_t now_time_sec,new_time_sec = 0;
-	int8_t back_timer_min, back_timer_sec=0;
 
 	back_timer_min = TimeGap[0][0];
 	back_timer_sec = TimeGap[0][1];
@@ -198,6 +180,7 @@ int main(void){
 				fprintf( OutputCSV, "Срок замера,,\"Массовые концентрации, млг/м3 или мкг/м3\",,,,;\n");
 				fprintf( OutputCSV, "Дата, Время, PM1,PM2.5,PM10,PM100;\n");
 				fclose( OutputCSV );
+				fsync( OutputCSV );
 			}
 		}
 
@@ -253,6 +236,7 @@ int main(void){
 							fprintf( OutputCSV, "%02d.%02d.%02d, %02d:%02d:%02d,", timenow->tm_mday, timenow->tm_mon + 1, timenow->tm_year + 1900, timenow->tm_hour, timenow->tm_min, timenow->tm_sec);
 							fprintf( OutputCSV, " %d, %d, %d, %d;\r\n", Result[0].Value, Result[1].Value, Result[2].Value, Result[3].Value);
 							fclose( OutputCSV );
+							fsync( OutputCSV );
 						}
 
 						GUI_Show_OLED_string( PeriodDescrArea.x1, PeriodDescrArea.y1, PeriodDescrArea.x2, PeriodDescrArea.y2, &Font12, "Next start:",WHITE);
@@ -283,8 +267,8 @@ int main(void){
 					Dust_Sensor_PMS_7003_Reset();
 					SN74_MUX_to_PMS_7003();
 					retval_pms_7003 =  Dust_Sensor_PMS_7003_Set_Mode(fd_UART, MODE_PASSIVE);
-
 				}
+
 				Result[0].Value = data_pms_7003->pm1_0_atmospheric_envir;
 				Result[1].Value = data_pms_7003->pm2_5_atmospheric_envir;
 				Result[2].Value = data_pms_7003->pm10_atmospheric_envir;
@@ -297,6 +281,10 @@ int main(void){
 					serialFlush ( fd_UART );
 				}else{
 					count_error_sensor_SDS198 = 0;
+				}
+
+				if(count_error_sensor_SDS198 >= 2 ){ //если происходит три ошибки подряд ресетим датчик
+					//TO DO. Need add power switch on board.
 				}
 
 				Result[3].Value = *data_sds198;
