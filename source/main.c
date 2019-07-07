@@ -17,12 +17,8 @@
 #include "OLED_Driver.h"
 #include "OLED_GUI.h"
 #include "DEV_Config.h"
-
 #include <time.h>
-
 //#include <wiringSerial.h>
-
-
 
 struct DisplayArea{
 	POINT x1;
@@ -69,9 +65,10 @@ int main(void){
 	struct tm *timenow;
 
 	FILE *OutputCSV;
-	char *FileNameTemp = "/media/pi/MONITORING/Dust_Monitoring/Dust_monitor_";
+	char *FileNameTemp = "Dust_Monitoring/Dust_monitor_";
+	char Flash_path[100];
 	char CurFileName[100];
-	int8_t TimeGap[3][2] = { { 10, 00 }, { 0, 30 }, { 0, 30 } }; // массив таймеров (мин, сек) для периодов ожидания, продувки и измерения соответственно
+	int8_t TimeGap[3][2]; // массив таймеров (мин, сек) для периодов ожидания, продувки и измерения соответственно
 	int8_t Period;// Возможные значения 0 - ожидание, 1 -продувка датчиков и 2 - измерение
 	int8_t NumOfPeriods = 3; // Количество периодов
 
@@ -87,9 +84,13 @@ int main(void){
 	uint8_t now_time_sec,new_time_sec = 0;
 	int8_t back_timer_min, back_timer_sec=0;
 
+	Get_Flash_disk_path(Flash_path);
+
+	Get_Config( Flash_path, TimeGap );
+
+
 
 	fd_UART = serialOpen("/dev/ttyAMA0", 9600);
-
 
 	if(System_Init()){ //wiringPi System Initialization
 		//fprintf (stdout, "WiringPi System Initialization: %s\n", strerror (errno)) ;
@@ -97,7 +98,7 @@ int main(void){
 		exit(0);
 	}
 
-	printf("**********Init OLED**********\r\n");
+	//printf("**********Init OLED**********\r\n");
 	OLED_SCAN_DIR OLED_ScanDir = SCAN_DIR_DFT;//SCAN_DIR_DFT = D2U_L2R
 	OLED_Init(OLED_ScanDir );
 
@@ -166,11 +167,10 @@ int main(void){
 
 			new_time_day = cur_time_day;
 
-			sprintf( CurFileName, "%s%02d_%02d_%02d.csv", FileNameTemp, timenow->tm_mday,timenow->tm_mon + 1, timenow->tm_year + 1900);
+			sprintf( CurFileName, "%s%s%02d_%02d_%02d.csv", Flash_path, FileNameTemp, timenow->tm_mday,timenow->tm_mon + 1, timenow->tm_year + 1900);
 
 			//Создадим файл для нового дня
 			OutputCSV = fopen( CurFileName, "w");
-
 			ShowFileError( OutputCSV, ErrorArea);
 
 			if ( OutputCSV != NULL ) {
@@ -188,9 +188,6 @@ int main(void){
 			GUI_ShowTimeDate( TimeDateArea.x1, TimeDateArea.y1, TimeDateArea.x2, TimeDateArea.y2 , timenow, &Font12, WHITE);
 			OLED_DisWindow( TimeDateArea.x1, TimeDateArea.y1, TimeDateArea.x2, TimeDateArea.y2 );
 			new_time_sec = now_time_sec;
-
-			//OLED_ClearWindow(0, 15, 42, 27, WHITE);
-			//GUI_DisString_EN(0 , 15,"09:36", &Font12, FONT_BACKGROUND, WHITE);
 
 			back_timer_sec = back_timer_sec-1;
 

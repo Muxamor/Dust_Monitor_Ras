@@ -36,7 +36,7 @@ uint8_t System_Init(void)
 
 #if USE_SPI_4W
 	//3.spi init
-	printf("USE_SPI\r\n");       
+	//printf("USE_SPI\r\n");
     //wiringPiSPISetup(0,9000000);
     wiringPiSPISetupMode(0, 9000000, 0);
 #elif USE_IIC

@@ -41,6 +41,7 @@ DEPS = # \
 COBJ =\
  $(OBJDIR)/main.o\
  $(OBJDIR)/dust_sensor.o\
+ $(OBJDIR)/config_station.o\
  $(OBJDIR)/font8.o\
  $(OBJDIR)/font12.o\
  $(OBJDIR)/font16.o\
