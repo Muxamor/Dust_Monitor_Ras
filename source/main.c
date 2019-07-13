@@ -106,6 +106,9 @@ int main(void){
 	OLED_Clear(OLED_BACKGROUND);
 	OLED_Display();
 
+	time(&now);
+	timenow = localtime(&now);
+
 
 	GUI_DisString_EN(0 , 15,"Initialization: ", &Font12, FONT_BACKGROUND, WHITE);
 	OLED_Display();
@@ -115,6 +118,7 @@ int main(void){
 	retval_pms_7003 =  Dust_Sensor_PMS_7003_Set_Mode(fd_UART, MODE_PASSIVE);
 	if(retval_pms_7003 == -1){
 		GUI_DisString_EN(0 , 30,"PMS-7003     ERROR", &Font12, FONT_BACKGROUND, WHITE);
+		LogERR( Flash_path, timenow, "Start app. Initialization PMS-7003 error");
 	}else{
 		GUI_DisString_EN(0 , 30,"PMS-7003        OK", &Font12, FONT_BACKGROUND, WHITE);
 	}
@@ -125,6 +129,7 @@ int main(void){
 	retval_SDS198 =  Dust_Sensor_SDS198_Set_Mode(fd_UART, MODE_PASSIVE);
 	if(retval_SDS198 == -1){
 		GUI_DisString_EN(0 , 45,"SDS198       ERROR", &Font12, FONT_BACKGROUND, WHITE);
+		LogERR( Flash_path, timenow, "Start app. Initialization SDS198 error");
 	}else{
 		GUI_DisString_EN(0 , 45,"SDS198          OK", &Font12, FONT_BACKGROUND, WHITE);
 	}
@@ -205,26 +210,46 @@ int main(void){
 					if ( Period == 0 ){
 						// Окончание периода ожидания, переход к Продувке датчиков
 						SN74_MUX_to_PMS_7003();
-						Dust_Sensor_PMS_7003_Set_Mode(fd_UART, MODE_WAKEUP);
+						retval_pms_7003 = 0;
+						retval_pms_7003 = Dust_Sensor_PMS_7003_Set_Mode(fd_UART, MODE_WAKEUP);
+						if (retval_pms_7003 == -1){
+							LogERR( Flash_path, timenow, "Period0 to Period1  Set sensor PMS7003 mode wake up - error");
+						}
 
 						SN74_MUX_to_SDS198();
-						Dust_Sensor_SDS198_Set_Mode(fd_UART,  MODE_WAKEUP);
+						retval_SDS198 = 0;
+						retval_SDS198 = Dust_Sensor_SDS198_Set_Mode(fd_UART,  MODE_WAKEUP);
+						if (retval_SDS198 == -1){
+							LogERR( Flash_path, timenow, "Period0 to Period1 Set sensor SDS198 mode wake up - error");
+						}
 						GUI_Show_OLED_string( PeriodDescrArea.x1, PeriodDescrArea.y1, PeriodDescrArea.x2, PeriodDescrArea.y2, &Font12, "Preparing:",WHITE);
 
 					} else if ( Period == 1 ){
 						// Окончание периода продувки датчиков, переход к измерению
 						SN74_MUX_to_PMS_7003();
-						Dust_Sensor_PMS_7003_Set_Mode(fd_UART, MODE_PASSIVE);
+						retval_pms_7003 = 0;
+						retval_pms_7003 = Dust_Sensor_PMS_7003_Set_Mode(fd_UART, MODE_PASSIVE);
+						if (retval_pms_7003 == -1){
+							LogERR( Flash_path, timenow, "Period1 to Period2 Set sensor PMS7003 mode passive - error");
+						}
 						//Sensor SDS198 have flash to  save setting passive mode.
 						GUI_Show_OLED_string( PeriodDescrArea.x1, PeriodDescrArea.y1, PeriodDescrArea.x2, PeriodDescrArea.y2, &Font12, "Measuring:",WHITE);
 
 					} else if ( Period == 2 ){
 						// Окончание периода измерения, переход к ожиданию
 						SN74_MUX_to_PMS_7003();
-						Dust_Sensor_PMS_7003_Set_Mode(fd_UART, MODE_SLEEP);
+						retval_pms_7003 = 0;
+						retval_pms_7003 = Dust_Sensor_PMS_7003_Set_Mode(fd_UART, MODE_SLEEP);
+						if (retval_pms_7003 == -1){
+							LogERR( Flash_path, timenow, "Period2 to Period0 Set sensor PMS7003 mode sleep - error");
+						}
 
 						SN74_MUX_to_SDS198();
-						Dust_Sensor_SDS198_Set_Mode(fd_UART,  MODE_SLEEP);
+						retval_SDS198 = 0;
+						retval_SDS198 = Dust_Sensor_SDS198_Set_Mode(fd_UART,  MODE_SLEEP);
+						if (retval_SDS198 == -1){
+							LogERR( Flash_path, timenow, "Period2 to Period0 Set sensor SDS198 mode sleep - error");
+						}
 
 						//Откроем файл текущего дня
 						OutputCSV = fopen( CurFileName, "a");
@@ -254,6 +279,7 @@ int main(void){
 				retval_pms_7003 = 0;
 				retval_pms_7003 = Dust_Sensor_PMS_7003_Read_Data_Passive_Mode (fd_UART, data_pms_7003);
 				if (retval_pms_7003 == -1 ){
+					LogERR( Flash_path, timenow, "Error get data from sensor PMS_7003. Period 2");
 					count_error_sensor_pms_7003++;
 					serialFlush ( fd_UART );
 				}else{
@@ -261,9 +287,14 @@ int main(void){
 				}
 
 				if(count_error_sensor_pms_7003 >= 2 ){ //если происходит три ошибки подряд ресетим датчик
+					LogERR( Flash_path, timenow, "Error get data from sensor PMS_7003 three times. Period 2");
 					Dust_Sensor_PMS_7003_Reset();
 					SN74_MUX_to_PMS_7003();
+					retval_pms_7003 = 0;
 					retval_pms_7003 =  Dust_Sensor_PMS_7003_Set_Mode(fd_UART, MODE_PASSIVE);
+					if (retval_pms_7003 == -1 ){
+						LogERR( Flash_path, timenow, "Restart sensor PMS_7003 error ");
+					}
 				}
 
 				Result[0].Value = data_pms_7003->pm1_0_atmospheric_envir;
@@ -274,6 +305,7 @@ int main(void){
 				retval_SDS198 = 0;
 				retval_SDS198 = Dust_Sensor_SDS198_Read_Data_Passive_Mode (fd_UART, data_sds198);
 				if (retval_SDS198 == -1 ){
+					LogERR( Flash_path, timenow, "Error get data from sensor SDS198. Period 2");
 					count_error_sensor_SDS198++;
 					serialFlush ( fd_UART );
 				}else{
@@ -281,6 +313,8 @@ int main(void){
 				}
 
 				if(count_error_sensor_SDS198 >= 2 ){ //если происходит три ошибки подряд ресетим датчик
+					LogERR( Flash_path, timenow, "Error get data sensor SDS198 three times. Period 2");
+
 					//TO DO. Need add power switch on board.
 				}
 
@@ -306,7 +340,7 @@ int main(void){
 				}
 			}
 
-			GUI_Show_OLED_min_sec( PeriodTimerArea.x1, PeriodTimerArea.y1, PeriodTimerArea.x2, PeriodTimerArea.y2, &Font12, back_timer_min, back_timer_sec,WHITE);
+			GUI_Show_OLED_min_sec( PeriodTimerArea.x1, PeriodTimerArea.y1, PeriodTimerArea.x2, PeriodTimerArea.y2, &Font12, back_timer_min, back_timer_sec, WHITE );
 			OLED_DisWindow( PeriodTimerArea.x1, PeriodTimerArea.y1, PeriodTimerArea.x2, PeriodTimerArea.y2 );
 
 		}
