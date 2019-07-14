@@ -45,7 +45,7 @@ int Get_Config( char *f_path, int8_t TimeArray[3][2]){
 	ConfigFile = fopen( ConfigPath, "r");
 	if ( ConfigFile == NULL ) {
 	//	fprintf(stderr, "Can't open file.\n");
-		return 0;
+		return -1;
 	}
 
 	for (i = 0; (i < 3) && (NULL != fgets( String, 1000, ConfigFile)); ++i) {

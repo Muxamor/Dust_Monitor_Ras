@@ -84,9 +84,17 @@ int main(void){
 	uint8_t now_time_sec,new_time_sec = 0;
 	int8_t back_timer_min, back_timer_sec=0;
 
+
 	Get_Flash_disk_path(Flash_path);
 
-	Get_Config( Flash_path, TimeGap );
+	if ( Get_Config( Flash_path, TimeGap ) == -1) {
+		TimeGap[0][0] = 10;
+		TimeGap[0][1] = 00;
+		TimeGap[1][0] = 00;
+		TimeGap[1][1] = 30;
+		TimeGap[2][0] = 00;
+		TimeGap[2][1] = 30;
+	}
 
 
 
@@ -102,7 +110,7 @@ int main(void){
 	OLED_SCAN_DIR OLED_ScanDir = SCAN_DIR_DFT;//SCAN_DIR_DFT = D2U_L2R
 	OLED_Init(OLED_ScanDir );
 
-	GUI_OLED_Show_Start_screan(3000);
+	GUI_OLED_Show_Start_screan(5000);
 	OLED_Clear(OLED_BACKGROUND);
 	OLED_Display();
 
@@ -126,6 +134,8 @@ int main(void){
 	OLED_Display();
 
 	SN74_MUX_to_SDS198();
+	retval_SDS198 = 0;
+	retval_SDS198 =  Dust_Sensor_SDS198_Set_Mode(fd_UART, SET_DEV_ID);
 	retval_SDS198 =  Dust_Sensor_SDS198_Set_Mode(fd_UART, MODE_PASSIVE);
 	if(retval_SDS198 == -1){
 		GUI_DisString_EN(0 , 45,"SDS198       ERROR", &Font12, FONT_BACKGROUND, WHITE);
@@ -230,7 +240,11 @@ int main(void){
 						retval_pms_7003 = 0;
 						retval_pms_7003 = Dust_Sensor_PMS_7003_Set_Mode(fd_UART, MODE_PASSIVE);
 						if (retval_pms_7003 == -1){
-							LogERR( Flash_path, timenow, "Period1 to Period2 Set sensor PMS7003 mode passive - error");
+							retval_pms_7003 = 0;
+							retval_pms_7003 = Dust_Sensor_PMS_7003_Set_Mode(fd_UART, MODE_PASSIVE); //Some time happen fucking sensor
+							if (retval_pms_7003 == -1){
+								LogERR( Flash_path, timenow, "Period1 to Period2 Set sensor PMS7003 mode passive - error");
+							}
 						}
 						//Sensor SDS198 have flash to  save setting passive mode.
 						GUI_Show_OLED_string( PeriodDescrArea.x1, PeriodDescrArea.y1, PeriodDescrArea.x2, PeriodDescrArea.y2, &Font12, "Measuring:",WHITE);

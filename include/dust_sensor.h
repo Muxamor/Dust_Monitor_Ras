@@ -14,6 +14,7 @@
 #define MODE_PASSIVE 2
 #define MODE_SLEEP   3
 #define MODE_WAKEUP  4
+#define SET_DEV_ID   5
 
 typedef struct{
 	uint16_t pm1_0_standard_particle; // ug/m3 should be used in the factory environment
