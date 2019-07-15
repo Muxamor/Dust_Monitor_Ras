@@ -95,10 +95,13 @@ void GUI_DisNum(POINT Xpoint, POINT Ypoint, int32_t Nummber, sFONT* Font, COLOR 
 void GUI_Showtime(POINT Xstart, POINT Ystart, POINT Xend, POINT Yend, DEV_TIME *pTime, COLOR Color);
 void GUI_ShowTimeDate(POINT Xstart, POINT Ystart, POINT Xend, POINT Yend, struct tm *time_date, sFONT *Font, COLOR Color);
 //show
+void GUI_Show_OLED_string(POINT Xstart, POINT Ystart, POINT Xend, POINT Yend, sFONT* Font, const char * pString, COLOR Color);
 void GUI_Show_OLED_min_sec(POINT Xstart, POINT Ystart, POINT Xend, POINT Yend, sFONT* Font, uint8_t time_minutes, uint8_t time_seconds,COLOR Color);
 void GUI_Show(void);
 void GUI_OLED_Show_Start_screan(uint32_t show_time_ms);
 void GUI_OLED_Show_IP_address(POINT Xstart, POINT Ystart, POINT Xend, POINT Yend, COLOR Color);
+
+
 
 
 static const unsigned char gImage_ninja[8198] = { 0X00,0X04,0X80,0X00,0X80,0X00,

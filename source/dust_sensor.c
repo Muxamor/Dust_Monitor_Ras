@@ -4,6 +4,11 @@
  *  Created on: Jun 6, 2019
  *      Author: Ivan
  */
+#include <wiringPi.h>
+#include <wiringSerial.h>
+#include <unistd.h>
+#include <stdio.h>
+
 #include "dust_sensor.h"
 #include "DEV_Config.h"
 

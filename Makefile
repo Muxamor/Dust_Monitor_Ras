@@ -1,6 +1,6 @@
 PROJECT=Dust_Monitor_Ras
 # Set the FLAG OS_SYSTEM - CROSSLINUX or CROSSMAC or RASSBERYPI it depends which sistem are you use to build. 
-OS_SYSTEM=CROSSMAC
+OS_SYSTEM=CROSSLINUX
 
 ifeq ($(OS_SYSTEM),CROSSLINUX)
 	SYSROOT_PATH=/home/muxamor/Develop/RaspberryPi/sysroot

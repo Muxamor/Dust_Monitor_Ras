@@ -10,13 +10,16 @@
 #include <stdio.h>		//printf()
 #include <string.h>
 #include <stdlib.h>		//exit()
+#include <unistd.h>
 #include <errno.h>
 
 #include "main.h"
+#include <wiringSerial.h>
 #include "dust_sensor.h"
 #include "OLED_Driver.h"
 #include "OLED_GUI.h"
 #include "DEV_Config.h"
+#include "config_station.h"
 #include <time.h>
 //#include <wiringSerial.h>
 
@@ -134,8 +137,8 @@ int main(void){
 	OLED_Display();
 
 	SN74_MUX_to_SDS198();
+	Dust_Sensor_SDS198_Set_Mode(fd_UART, SET_DEV_ID);
 	retval_SDS198 = 0;
-	retval_SDS198 =  Dust_Sensor_SDS198_Set_Mode(fd_UART, SET_DEV_ID);
 	retval_SDS198 =  Dust_Sensor_SDS198_Set_Mode(fd_UART, MODE_PASSIVE);
 	if(retval_SDS198 == -1){
 		GUI_DisString_EN(0 , 45,"SDS198       ERROR", &Font12, FONT_BACKGROUND, WHITE);
@@ -192,10 +195,10 @@ int main(void){
 				//Если файл открыт успешно, выведем заголовок таблицы
 		//		fprintf( OutputCSV, "Срок замера,,Метео,,\"Массовые концентрации, мг/мг3 или мкг/м3\",,,,,,;\n");
 		//		fprintf( OutputCSV, "Дата, Время, \"Та, c\",\"Pa, мм рт ст\",NO2,SO2,PM1,PM2.5,PM10,PM100;\n");
-				fprintf( OutputCSV, "Срок замера,,\"Массовые концентрации, млг/м3 или мкг/м3\",,,,;\n");
+				fprintf( OutputCSV, "Срок замера,,\"Массовые концентрации, мкг/м3\",,,,;\n");
 				fprintf( OutputCSV, "Дата, Время, PM1,PM2.5,PM10,PM100;\n");
 				fclose( OutputCSV );
-				fsync( OutputCSV );
+				fsync( fileno(OutputCSV) );
 			}
 		}
 
@@ -272,7 +275,7 @@ int main(void){
 							fprintf( OutputCSV, "%02d.%02d.%02d, %02d:%02d:%02d,", timenow->tm_mday, timenow->tm_mon + 1, timenow->tm_year + 1900, timenow->tm_hour, timenow->tm_min, timenow->tm_sec);
 							fprintf( OutputCSV, " %d, %d, %d, %d;\r\n", Result[0].Value, Result[1].Value, Result[2].Value, Result[3].Value);
 							fclose( OutputCSV );
-							fsync( OutputCSV );
+							fsync(fileno(OutputCSV) );
 						}
 
 						GUI_Show_OLED_string( PeriodDescrArea.x1, PeriodDescrArea.y1, PeriodDescrArea.x2, PeriodDescrArea.y2, &Font12, "Next start:",WHITE);
