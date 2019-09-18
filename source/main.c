@@ -5,8 +5,6 @@
  * Email: ivan.neskorodev@gmail.com
 */
 
-
-
 #include <stdio.h>		//printf()
 #include <string.h>
 #include <stdlib.h>		//exit()
@@ -87,20 +85,6 @@ int main(void){
 	uint8_t now_time_sec,new_time_sec = 0;
 	int8_t back_timer_min, back_timer_sec=0;
 
-
-	Get_Flash_disk_path(Flash_path);
-
-	if ( Get_Config( Flash_path, TimeGap ) == -1) {
-		TimeGap[0][0] = 10;
-		TimeGap[0][1] = 00;
-		TimeGap[1][0] = 00;
-		TimeGap[1][1] = 30;
-		TimeGap[2][0] = 00;
-		TimeGap[2][1] = 30;
-	}
-
-
-
 	fd_UART = serialOpen("/dev/ttyAMA0", 9600);
 
 	if(System_Init()){ //wiringPi System Initialization
@@ -120,13 +104,30 @@ int main(void){
 	time(&now);
 	timenow = localtime(&now);
 
-
 	GUI_DisString_EN(0 , 15,"Initialization: ", &Font12, FONT_BACKGROUND, WHITE);
 	OLED_Display();
 
 	Dust_Sensor_PMS_7003_Reset();
 	SN74_MUX_to_PMS_7003();
 	retval_pms_7003 =  Dust_Sensor_PMS_7003_Set_Mode(fd_UART, MODE_PASSIVE);
+
+	//Get Falsh disk path
+	for(i=0; i<3; i++){
+		if(Get_Flash_disk_path(Flash_path) == 0){
+			break;
+		}
+		sleep(1);
+	}
+
+	if ( Get_Config( Flash_path, TimeGap ) == -1) {
+		TimeGap[0][0] = 10;
+		TimeGap[0][1] = 00;
+		TimeGap[1][0] = 00;
+		TimeGap[1][1] = 30;
+		TimeGap[2][0] = 00;
+		TimeGap[2][1] = 30;
+	}
+
 	if(retval_pms_7003 == -1){
 		GUI_DisString_EN(0 , 30,"PMS-7003     ERROR", &Font12, FONT_BACKGROUND, WHITE);
 		LogERR( Flash_path, timenow, "Start app. Initialization PMS-7003 error");
@@ -136,6 +137,8 @@ int main(void){
 	Dust_Sensor_PMS_7003_Set_Mode(fd_UART, MODE_SLEEP);
 	OLED_Display();
 
+	SDS198_Power_ON;
+	sleep(2);
 	SN74_MUX_to_SDS198();
 	Dust_Sensor_SDS198_Set_Mode(fd_UART, SET_DEV_ID);
 	retval_SDS198 = 0;
@@ -185,7 +188,7 @@ int main(void){
 
 			new_time_day = cur_time_day;
 
-			sprintf( CurFileName, "%s%s%02d_%02d_%02d.csv", Flash_path, FileNameTemp, timenow->tm_mday,timenow->tm_mon + 1, timenow->tm_year + 1900);
+			sprintf( CurFileName, "%s%s%02d_%02d_%02d_%02d_%02d.csv", Flash_path, FileNameTemp, timenow->tm_mday,timenow->tm_mon + 1, timenow->tm_year + 1900, timenow->tm_hour, timenow->tm_min);
 
 			//Создадим файл для нового дня
 			OutputCSV = fopen( CurFileName, "w");
@@ -195,8 +198,8 @@ int main(void){
 				//Если файл открыт успешно, выведем заголовок таблицы
 		//		fprintf( OutputCSV, "Срок замера,,Метео,,\"Массовые концентрации, мг/мг3 или мкг/м3\",,,,,,;\n");
 		//		fprintf( OutputCSV, "Дата, Время, \"Та, c\",\"Pa, мм рт ст\",NO2,SO2,PM1,PM2.5,PM10,PM100;\n");
-				fprintf( OutputCSV, "Срок замера,,\"Массовые концентрации, мкг/м3\",,,,;\n");
-				fprintf( OutputCSV, "Дата, Время, PM1,PM2.5,PM10,PM100;\n");
+				fprintf( OutputCSV, "Срок замера;;\"Массовые концентрации, мкг/м3\";;;;;\n");
+				fprintf( OutputCSV, "Дата; Время; PM1;PM2.5;PM10;PM100;\n");
 				fclose( OutputCSV );
 				fsync( fileno(OutputCSV) );
 			}
@@ -272,8 +275,8 @@ int main(void){
 						OutputCSV = fopen( CurFileName, "a");
 						ShowFileError( OutputCSV, ErrorArea);
 						if ( OutputCSV != NULL ) {
-							fprintf( OutputCSV, "%02d.%02d.%02d, %02d:%02d:%02d,", timenow->tm_mday, timenow->tm_mon + 1, timenow->tm_year + 1900, timenow->tm_hour, timenow->tm_min, timenow->tm_sec);
-							fprintf( OutputCSV, " %d, %d, %d, %d;\r\n", Result[0].Value, Result[1].Value, Result[2].Value, Result[3].Value);
+							fprintf( OutputCSV, "%02d.%02d.%02d; %02d:%02d:%02d;", timenow->tm_mday, timenow->tm_mon + 1, timenow->tm_year + 1900, timenow->tm_hour, timenow->tm_min, timenow->tm_sec);
+							fprintf( OutputCSV, " %d; %d; %d; %d;\r\n", Result[0].Value, Result[1].Value, Result[2].Value, Result[3].Value);
 							fclose( OutputCSV );
 							fsync(fileno(OutputCSV) );
 						}
@@ -331,8 +334,13 @@ int main(void){
 
 				if(count_error_sensor_SDS198 >= 2 ){ //если происходит три ошибки подряд ресетим датчик
 					LogERR( Flash_path, timenow, "Error get data sensor SDS198 three times. Period 2");
-
-					//TO DO. Need add power switch on board.
+					/*Dust_Sensor_SDS198_Reset();
+					SN74_MUX_to_SDS198();
+					retval_SDS198 = 0;
+					retval_SDS198 =  Dust_Sensor_SDS198_Set_Mode(fd_UART, MODE_PASSIVE);
+					if (retval_SDS198 == -1 ){
+						LogERR( Flash_path, timenow, "Restart sensor SDS198 error ");
+					}*/
 				}
 
 				Result[3].Value = *data_sds198;

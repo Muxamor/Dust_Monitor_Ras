@@ -159,7 +159,13 @@ int Dust_Sensor_PMS_7003_Read_Data_Passive_Mode (int fd,  _data_pms_7003 *data_p
 	return 0;
 }
 
+void Dust_Sensor_SDS198_Reset(void){
 
+	SDS198_Power_OFF;
+	usleep(300000);
+	SDS198_Power_ON;
+	sleep(2);
+}
 
 
 int Dust_Sensor_SDS198_Set_Mode(int fd, uint8_t mode){

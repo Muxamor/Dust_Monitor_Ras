@@ -35,6 +35,8 @@ uint8_t System_Init(void)
     pinMode(5,       OUTPUT); // PMS-7003 - SET signal
     pinMode(6,       OUTPUT); // PMS-7003 - Reset signal
 
+    pinMode(13,      OUTPUT); // SDS198 power key BSP452
+
 #if USE_SPI_4W
 	//3.spi init
 	//printf("USE_SPI\r\n");
