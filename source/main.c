@@ -66,7 +66,7 @@ int main(void){
 	struct tm *timenow;
 
 	FILE *OutputCSV;
-	char *FileNameTemp = "Dust_Monitoring/Dust_monitor_";
+	char *FileNameTemp = "Dust_Monitoring/B0001_Dust_monitor_";
 	char Flash_path[100];
 	char CurFileName[100];
 	int8_t TimeGap[3][2]; // массив таймеров (мин, сек) для периодов ожидания, продувки и измерения соответственно
@@ -188,7 +188,7 @@ int main(void){
 
 			new_time_day = cur_time_day;
 
-			sprintf( CurFileName, "%s%s%02d_%02d_%02d_%02d_%02d.csv", Flash_path, FileNameTemp, timenow->tm_mday,timenow->tm_mon + 1, timenow->tm_year + 1900, timenow->tm_hour, timenow->tm_min);
+			sprintf( CurFileName, "%s%s%02d_%02d_%02d_%02d_%02d.csv", Flash_path, FileNameTemp, timenow->tm_year + 1900, timenow->tm_mon + 1, timenow->tm_mday, timenow->tm_hour, timenow->tm_min);
 
 			//Создадим файл для нового дня
 			OutputCSV = fopen( CurFileName, "w");
