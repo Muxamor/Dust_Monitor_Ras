@@ -49,7 +49,9 @@ COBJ =\
  $(OBJDIR)/font24.o\
  $(OBJDIR)/OLED_GUI.o\
  $(OBJDIR)/OLED_Driver.o\
- $(OBJDIR)/DEV_Config.o
+ $(OBJDIR)/DEV_Config.o\
+ $(OBJDIR)/ModeBus.o\
+ $(OBJDIR)/gas_sensor.o
  
 # gcc binaries to use. Write correct path on your OS system 
 ifeq ($(OS_SYSTEM),CROSSLINUX)

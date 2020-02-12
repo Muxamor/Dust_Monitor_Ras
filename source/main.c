@@ -14,6 +14,7 @@
 #include "main.h"
 #include <wiringSerial.h>
 #include "dust_sensor.h"
+#include "gas_sensor.h"
 #include "OLED_Driver.h"
 #include "OLED_GUI.h"
 #include "DEV_Config.h"
@@ -31,6 +32,7 @@ struct DisplayArea{
 struct MeasureResult{
 	struct DisplayArea Area;
 	int16_t Value;
+	float Value_float;
 };
 
 void CoordInit ( struct DisplayArea *Area, POINT x_start, POINT y_start, POINT x_end, POINT y_end){
@@ -56,9 +58,13 @@ int main(void){
 
 	_data_pms_7003 DATA_PMS_7003, *data_pms_7003 = &DATA_PMS_7003;
 	uint16_t DATA_SDS198, *data_sds198 = &DATA_SDS198;
+	_data_gas_senser DATA_GAS_SENSER, *data_gas_senser = &DATA_GAS_SENSER;
+
 	int fd_UART,counter_data_uart;
 	int retval_pms_7003 = 0, retval_SDS198 = 0;
+	int retval_gas_senser = 0;
 	int i;
+	float gas_value = 0;
 	uint8_t count_error_sensor_pms_7003 = 0;
 	uint8_t count_error_sensor_SDS198 = 0;
 
@@ -69,11 +75,12 @@ int main(void){
 	char *FileNameTemp = "Dust_Monitoring/B0001_Dust_monitor_";
 	char Flash_path[100];
 	char CurFileName[100];
+	uint8_t str[30] ={};
 	int8_t TimeGap[3][2]; // массив таймеров (мин, сек) для периодов ожидания, продувки и измерения соответственно
 	int8_t Period;// Возможные значения 0 - ожидание, 1 -продувка датчиков и 2 - измерение
 	int8_t NumOfPeriods = 3; // Количество периодов
 
-	struct MeasureResult Result[4]; // массив измерений PM1, PM2.5, PM10, PM100
+	struct MeasureResult Result[8]; // массив измерений PM1, PM2.5, PM10, PM100
 
 	struct DisplayArea TimeDateArea = { 0, 0, 127, 12 };
 	struct DisplayArea PeriodDescrArea = { 0, 15, 83, 27 };
@@ -92,6 +99,7 @@ int main(void){
 		perror("WiringPi System Initialization - FAILUR");
 		exit(0);
 	}
+
 
 	//printf("**********Init OLED**********\r\n");
 	OLED_SCAN_DIR OLED_ScanDir = SCAN_DIR_DFT;//SCAN_DIR_DFT = D2U_L2R
@@ -150,6 +158,18 @@ int main(void){
 		GUI_DisString_EN(0 , 45,"SDS198          OK", &Font12, FONT_BACKGROUND, WHITE);
 	}
 	Dust_Sensor_SDS198_Set_Mode(fd_UART, MODE_SLEEP);
+	OLED_Display();
+	
+
+	SN74_MUX_to_External_Gas_Sensor();
+	retval_gas_senser = 0;
+	retval_gas_senser = Gas_Sensor_get ( fd_UART , 0x0A, GAS_CON_CO, &gas_value ); // Only check connect
+	if(retval_gas_senser == -1){
+		GUI_DisString_EN(0 , 60,"Gas Senser   ERROR", &Font12, FONT_BACKGROUND, WHITE);
+		LogERR( Flash_path, timenow, "Start app. Initialization Gas senser error");
+	}else{
+		GUI_DisString_EN(0 , 60,"Gas Sesner      OK", &Font12, FONT_BACKGROUND, WHITE);
+	}
 
 	OLED_Display();
 	Driver_Delay_ms(2000);
@@ -158,22 +178,26 @@ int main(void){
 	OLED_Display();
 
 	GUI_DisString_EN(0 , 15,"Next start:   ", &Font12, FONT_BACKGROUND, WHITE);
-	GUI_DisString_EN(20 , 30, "PM1   =    ", &Font12, FONT_BACKGROUND, WHITE);
-	GUI_DisString_EN(20 , 45, "PM2.5 =    ", &Font12, FONT_BACKGROUND, WHITE);
-	GUI_DisString_EN(20 , 60, "PM10  =    ", &Font12, FONT_BACKGROUND, WHITE);
-    GUI_DisString_EN(20 , 75, "PM100 =    ", &Font12, FONT_BACKGROUND, WHITE);
+	GUI_DisString_EN(0 , 30, "PM1  =    CO=", &Font12, FONT_BACKGROUND, WHITE);
+	GUI_DisString_EN(0 , 45, "PM2.5=    SO2=", &Font12, FONT_BACKGROUND, WHITE);
+	GUI_DisString_EN(0 , 60, "PM10 =    NO2=", &Font12, FONT_BACKGROUND, WHITE);
+    GUI_DisString_EN(0 , 75, "PM100=    CO2=", &Font12, FONT_BACKGROUND, WHITE);
     GUI_OLED_Show_IP_address( 0, 103, 127, 127, WHITE);
     OLED_Display();
-
 
 	back_timer_min = TimeGap[0][0];
 	back_timer_sec = TimeGap[0][1];
 	Period = 0;
 
-	CoordInit( &Result[0].Area, 77, 30 , 127, 44);
-	CoordInit( &Result[1].Area, 77, 45 , 127, 59);
-	CoordInit( &Result[2].Area, 77, 60 , 127, 74);
-	CoordInit( &Result[3].Area, 77, 75 , 127, 87);
+	CoordInit( &Result[0].Area, 42, 30 , 62, 44); //PM1
+	CoordInit( &Result[1].Area, 42, 45 , 62, 59); //PM2.5
+	CoordInit( &Result[2].Area, 42, 60 , 62, 74); //PM10
+	CoordInit( &Result[3].Area, 42, 75 , 62, 87); //PM100
+
+	CoordInit( &Result[4].Area, 91, 30 , 127, 44); //CO
+	CoordInit( &Result[5].Area, 98, 45 , 127, 59); //SO2
+	CoordInit( &Result[6].Area, 98, 60 , 127, 74); //NO2
+	CoordInit( &Result[7].Area, 98, 75 , 127, 87); //CO2
 
 	while(1){
 
@@ -198,8 +222,8 @@ int main(void){
 				//Если файл открыт успешно, выведем заголовок таблицы
 		//		fprintf( OutputCSV, "Срок замера,,Метео,,\"Массовые концентрации, мг/мг3 или мкг/м3\",,,,,,;\n");
 		//		fprintf( OutputCSV, "Дата, Время, \"Та, c\",\"Pa, мм рт ст\",NO2,SO2,PM1,PM2.5,PM10,PM100;\n");
-				fprintf( OutputCSV, "Срок замера;;\"Массовые концентрации, мкг/м3\";;;;;\n");
-				fprintf( OutputCSV, "Дата; Время; PM1;PM2.5;PM10;PM100;\n");
+				fprintf( OutputCSV, "Срок замера;;\"Массовые концентрации, мкг/м3\";;;;;;;;;\n");
+				fprintf( OutputCSV, "Дата; Время; PM1;PM2.5;PM10;PM100;CO;SO2;NO2;CO2;\n");
 				fclose( OutputCSV );
 				fsync( fileno(OutputCSV) );
 			}
@@ -276,7 +300,7 @@ int main(void){
 						ShowFileError( OutputCSV, ErrorArea);
 						if ( OutputCSV != NULL ) {
 							fprintf( OutputCSV, "%02d.%02d.%02d; %02d:%02d:%02d;", timenow->tm_mday, timenow->tm_mon + 1, timenow->tm_year + 1900, timenow->tm_hour, timenow->tm_min, timenow->tm_sec);
-							fprintf( OutputCSV, " %d; %d; %d; %d;\r\n", Result[0].Value, Result[1].Value, Result[2].Value, Result[3].Value);
+							fprintf( OutputCSV, " %d; %d; %d; %d; %.2f; %.2f; %.2f; %.2f;\r\n", Result[0].Value, Result[1].Value, Result[2].Value, Result[3].Value, Result[4].Value_float, Result[5].Value_float, Result[6].Value_float, Result[7].Value_float);
 							fclose( OutputCSV );
 							fsync(fileno(OutputCSV) );
 						}
@@ -289,10 +313,9 @@ int main(void){
 					Period = (Period + 1) % NumOfPeriods;
 					back_timer_min = TimeGap[Period][0];
 					back_timer_sec = TimeGap[Period][1];
-
 				}
-
 			}
+
 			if ( Period == 2 ){
 				//Выведем полученные значения измерений
 				SN74_MUX_to_PMS_7003();
@@ -306,7 +329,7 @@ int main(void){
 					count_error_sensor_pms_7003 = 0;
 				}
 
-				if(count_error_sensor_pms_7003 >= 2 ){ //если происходит три ошибки подряд ресетим датчик
+				if(count_error_sensor_pms_7003 >= 1 ){ //если происходит две ошибки подряд ресетим датчик
 					LogERR( Flash_path, timenow, "Error get data from sensor PMS_7003 three times. Period 2");
 					Dust_Sensor_PMS_7003_Reset();
 					SN74_MUX_to_PMS_7003();
@@ -332,7 +355,7 @@ int main(void){
 					count_error_sensor_SDS198 = 0;
 				}
 
-				if(count_error_sensor_SDS198 >= 2 ){ //если происходит три ошибки подряд ресетим датчик
+				if(count_error_sensor_SDS198 >= 1 ){ //если происходит две ошибки подряд ресетим датчик
 					LogERR( Flash_path, timenow, "Error get data sensor SDS198 three times. Period 2");
 					/*Dust_Sensor_SDS198_Reset();
 					SN74_MUX_to_SDS198();
@@ -345,20 +368,50 @@ int main(void){
 
 				Result[3].Value = *data_sds198;
 
-				for( i = 0; i < 4; i++ ){
+				SN74_MUX_to_External_Gas_Sensor();
+				retval_gas_senser = 0;
+				retval_gas_senser = Gas_senser_get_CO_SO2_NO2_CO2 (fd_UART, 0x0A,  data_gas_senser);
+				if (retval_gas_senser == -1){
+					LogERR( Flash_path, timenow, "Error get data from gas sensor. Period 2");
+				}
+
+				Result[4].Value_float = data_gas_senser->gas_CO_value;
+				Result[5].Value_float = data_gas_senser->gas_SO2_value;
+				Result[6].Value_float = data_gas_senser->gas_NO2_value;
+				Result[7].Value_float = data_gas_senser->gas_CO2_value;
+
+				for( i = 0; i < 8; i++ ){
 
 					OLED_ClearWindow( Result[i].Area.x1, Result[i].Area.y1, Result[i].Area.x2, Result[i].Area.y2, WHITE);
 
 					if ( (retval_pms_7003 < 0) && (i < 3)){ // errors sensor
-						GUI_DisString_EN( Result[i].Area.x1, Result[i].Area.y1, "Error", &Font12, FONT_BACKGROUND, WHITE  );
+						GUI_DisString_EN( Result[i].Area.x1, Result[i].Area.y1, "Err", &Font12, FONT_BACKGROUND, WHITE  );
 					}else if(  (retval_pms_7003 == 0) && (i < 3) ) {
 						GUI_DisNum( Result[i].Area.x1, Result[i].Area.y1, Result[i].Value, &Font12, FONT_BACKGROUND, WHITE );
 					}
 
 					if( (retval_SDS198 < 0) && (i == 3) ){
-						GUI_DisString_EN( Result[i].Area.x1, Result[i].Area.y1, "Error", &Font12, FONT_BACKGROUND, WHITE  );
+						GUI_DisString_EN( Result[i].Area.x1, Result[i].Area.y1, "Err", &Font12, FONT_BACKGROUND, WHITE  );
 					}else if( (retval_SDS198 == 0) && (i == 3) ) {
 						GUI_DisNum( Result[i].Area.x1, Result[i].Area.y1, Result[i].Value, &Font12, FONT_BACKGROUND, WHITE );
+					}
+
+					if( (retval_gas_senser < 0) && ((i > 3) && (i < 8)) ){
+						GUI_DisString_EN( Result[i].Area.x1, Result[i].Area.y1, "NoC", &Font12, FONT_BACKGROUND, WHITE  ); // Enter No Connect on display
+					}else if(  (retval_gas_senser == 0) && ((i > 3) && (i < 8))  ){
+						if( ((i == 4) && (Result[i].Value_float > 1200.0 || Result[i].Value_float < -200.0)) ||// check CO gas value correct range
+							 (((i == 5)||(i == 6)) && (Result[i].Value_float > 24.0 || Result[i].Value_float < -4.0 )) ||//check SO2 and No2 gas value correct range
+							 ((i == 7) && (Result[i].Value_float > 6.0 || Result[i].Value_float < -1.0 )) ){// check CO2 gas value correct range
+
+								GUI_DisString_EN( Result[i].Area.x1, Result[i].Area.y1, "Err", &Font12, FONT_BACKGROUND, WHITE  );
+						}else{
+							if( Result[i].Value_float < 0 ){
+								sprintf(str, "%.1f", 0.0);
+							}else{
+								sprintf(str, "%.1f", Result[i].Value_float);
+							}
+							GUI_DisString_EN( Result[i].Area.x1, Result[i].Area.y1, str, &Font12, FONT_BACKGROUND, WHITE  );
+						}
 					}
 
 					OLED_DisWindow( Result[i].Area.x1, Result[i].Area.y1, Result[i].Area.x2, Result[i].Area.y2 );

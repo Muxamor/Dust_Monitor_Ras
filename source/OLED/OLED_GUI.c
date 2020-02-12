@@ -611,9 +611,9 @@ void GUI_OLED_Show_Start_screan(uint32_t show_time_ms){
 	OLED_Display();
 
 	GUI_DisString_EN(10 , 30, "ICT SB RAS", &Font16, FONT_BACKGROUND, WHITE);
-	GUI_DisString_EN(1 , 55, "Dust monitor v0.1", &Font12, FONT_BACKGROUND, WHITE);
-	GUI_DisString_EN(28 , 80, "PM1   PM2.5", &Font12, FONT_BACKGROUND, WHITE);
-	GUI_DisString_EN(28 , 100, "PM10  PM100", &Font12, FONT_BACKGROUND, WHITE);
+	GUI_DisString_EN(1 , 55, "Dust monitor v1.0", &Font12, FONT_BACKGROUND, WHITE);
+	GUI_DisString_EN(1 , 80,  "PM1  PM2.5 CO  CO2", &Font12, FONT_BACKGROUND, WHITE);
+	GUI_DisString_EN(1 , 100, "PM10 PM100 SO2 NO2", &Font12, FONT_BACKGROUND, WHITE);
 
 	OLED_Display();
 	Driver_Delay_ms(show_time_ms);
