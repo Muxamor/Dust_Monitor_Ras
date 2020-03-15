@@ -222,7 +222,7 @@ int main(void){
 				//Если файл открыт успешно, выведем заголовок таблицы
 		//		fprintf( OutputCSV, "Срок замера,,Метео,,\"Массовые концентрации, мг/мг3 или мкг/м3\",,,,,,;\n");
 		//		fprintf( OutputCSV, "Дата, Время, \"Та, c\",\"Pa, мм рт ст\",NO2,SO2,PM1,PM2.5,PM10,PM100;\n");
-				fprintf( OutputCSV, "Срок замера;;\"Массовые концентрации, мкг/м3\";;;;;;;;;\n");
+				fprintf( OutputCSV, "Срок замера;;\"Массовые концентрации, мкг/м3\";;;;;\"ppm\";\"ppm\";\"ppm\";\"%\";\n");
 				fprintf( OutputCSV, "Дата; Время; PM1;PM2.5;PM10;PM100;CO;SO2;NO2;CO2;\n");
 				fclose( OutputCSV );
 				fsync( fileno(OutputCSV) );
@@ -398,18 +398,22 @@ int main(void){
 
 					if( (retval_gas_senser < 0) && ((i > 3) && (i < 8)) ){
 						GUI_DisString_EN( Result[i].Area.x1, Result[i].Area.y1, "NoC", &Font12, FONT_BACKGROUND, WHITE  ); // Enter No Connect on display
+						 Result[i].Value_float = -1024.0; //No connect
 					}else if(  (retval_gas_senser == 0) && ((i > 3) && (i < 8))  ){
 						if( ((i == 4) && (Result[i].Value_float > 1200.0 || Result[i].Value_float < -200.0)) ||// check CO gas value correct range
 							 (((i == 5)||(i == 6)) && (Result[i].Value_float > 24.0 || Result[i].Value_float < -4.0 )) ||//check SO2 and No2 gas value correct range
 							 ((i == 7) && (Result[i].Value_float > 6.0 || Result[i].Value_float < -1.0 )) ){// check CO2 gas value correct range
 
+							    Result[i].Value_float = -2048.0; //Error sensor
 								GUI_DisString_EN( Result[i].Area.x1, Result[i].Area.y1, "Err", &Font12, FONT_BACKGROUND, WHITE  );
 						}else{
 							if( Result[i].Value_float < 0 ){
-								sprintf(str, "%.1f", 0.0);
-							}else{
-								sprintf(str, "%.1f", Result[i].Value_float);
-							}
+								Result[i].Value_float = 0.0;
+								//sprintf(str, "%.1f", 0.0);
+							}//else{
+							sprintf(str, "%.1f", Result[i].Value_float);
+							//}
+
 							GUI_DisString_EN( Result[i].Area.x1, Result[i].Area.y1, str, &Font12, FONT_BACKGROUND, WHITE  );
 						}
 					}
