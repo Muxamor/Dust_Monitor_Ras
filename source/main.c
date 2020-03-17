@@ -222,7 +222,7 @@ int main(void){
 				//Если файл открыт успешно, выведем заголовок таблицы
 		//		fprintf( OutputCSV, "Срок замера,,Метео,,\"Массовые концентрации, мг/мг3 или мкг/м3\",,,,,,;\n");
 		//		fprintf( OutputCSV, "Дата, Время, \"Та, c\",\"Pa, мм рт ст\",NO2,SO2,PM1,PM2.5,PM10,PM100;\n");
-				fprintf( OutputCSV, "Срок замера;;\"Массовые концентрации, мкг/м3\";;;;;\"ppm\";\"ppm\";\"ppm\";\"%\";\n");
+				fprintf( OutputCSV, "Срок замера;;\"Массовые концентрации, мкг/м3\";;;;\"ppm\";\"ppm\";\"ppm\";\"%\";\n");
 				fprintf( OutputCSV, "Дата; Время; PM1;PM2.5;PM10;PM100;CO;SO2;NO2;CO2;\n");
 				fclose( OutputCSV );
 				fsync( fileno(OutputCSV) );
