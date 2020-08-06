@@ -72,7 +72,7 @@ int main(void){
 	struct tm *timenow;
 
 	FILE *OutputCSV;
-	char *FileNameTemp = "Dust_Monitoring/B0001_Dust_monitor_";
+	char *FileNameTemp = "Dust_Monitoring/B0003_Dust_monitor_";
 	char Flash_path[100];
 	char CurFileName[100];
 	uint8_t str[30] ={};
