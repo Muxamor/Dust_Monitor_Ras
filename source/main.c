@@ -72,7 +72,7 @@ int main(void){
 	struct tm *timenow;
 
 	FILE *OutputCSV;
-	char *FileNameTemp = "Dust_Monitoring/B0003_Dust_monitor_";
+	char *FileNameTemp = "Dust_Monitoring/B0001_Dust_monitor_";
 	char Flash_path[100];
 	char CurFileName[100];
 	uint8_t str[30] ={};
@@ -303,6 +303,8 @@ int main(void){
 							fprintf( OutputCSV, " %d; %d; %d; %d; %.2f; %.2f; %.2f; %.2f;\r\n", Result[0].Value, Result[1].Value, Result[2].Value, Result[3].Value, Result[4].Value_float, Result[5].Value_float, Result[6].Value_float, Result[7].Value_float);
 							fclose( OutputCSV );
 							fsync(fileno(OutputCSV) );
+						}else{
+							system("sudo reboot"); //REboot RPi костыль для решения проблем с передачей
 						}
 
 						GUI_Show_OLED_string( PeriodDescrArea.x1, PeriodDescrArea.y1, PeriodDescrArea.x2, PeriodDescrArea.y2, &Font12, "Next start:",WHITE);
